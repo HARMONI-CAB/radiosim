@@ -1,3 +1,4 @@
+from faulthandler import disable
 import numpy as np
 
 from numpy.random import default_rng
@@ -7,6 +8,7 @@ from . import BOLTZMANN
 from . import PLANCK_CONSTANT
 from . import WIEN_B
 from . import StageResponse
+from scipy.special import erf
 
 class DetectorSimulator:
     def __init__(
@@ -83,7 +85,10 @@ class DetectorSimulator:
 
         ret = self.integratedFluxPerPixel(wl = wl, nu = nu) / self.E_p(wl = wl, nu = nu)
         nans = np.isnan(ret)
-        ret[nans] = 0
+
+        if len(nans.shape) > 0:
+            ret[nans] = 0
+        
         return ret
 
     # Returns the generated photoelectron rate
@@ -100,18 +105,112 @@ class DetectorSimulator:
         return rate
 
     # Returns the actual number of generated photoelectrons after some time
-    def electronsPerPixel(self, wl = None, nu = None, t = 1):
+    def electronsPerPixel(self, wl = None, nu = None, t = 1, disable_noise = False):
         e = t * self.electronRatePerPixel(wl, nu)
 
-        if self.poisson:
+        if self.poisson and not disable_noise:
             e = self.rng.poisson(lam = e)
         
         return e
 
     # Returns simulated counts
-    def countsPerPixel(self, wl = None, nu = None, t = 1):
-        e = self.electronsPerPixel(wl = wl, nu = nu, t = t)
-        e = self.rng.normal(loc = e, scale = self.ron)
+    def countsPerPixel(self, wl = None, nu = None, t = 1, disable_noise = False):
+        e = self.electronsPerPixel(wl = wl, nu = nu, t = t, disable_noise = disable_noise)
 
-        return np.round(e / self.G)
+        if not disable_noise:
+            e = self.rng.normal(loc = e, scale = self.ron)
+            return np.round(e / self.G)
+
+        return e / self.G
     
+    # Compute max texp:
+    def getMaxTexp(self, wl = None, nu = None, count_limit = 20000):
+        # Compute counts during 1 second. Assume proportionality and deduce exposition
+        counts = self.countsPerPixel(
+            wl = wl,
+            nu = nu,
+            t = 1,
+            disable_noise = True)
+
+        # Scalar case
+        if isinstance(counts, float):
+            max_count = counts
+            if wl is not None:
+                max_lambda = wl
+                max_nu     = SPEED_OF_LIGHT / max_lambda
+            elif nu is not None:
+                max_nu     = nu
+                max_lambda = SPEED_OF_LIGHT / max_nu
+        else: # Vector case
+            max_ndx = np.argmax(counts)
+            max_count = counts[max_ndx]
+            if wl is not None:
+                max_lambda = wl[max_count]
+                max_nu     = SPEED_OF_LIGHT / max_lambda
+            elif nu is not None:
+                max_nu     = nu[max_count]
+                max_lambda = SPEED_OF_LIGHT / max_nu
+        
+        if max_count == 0.:
+            raise Exception("Source produced no counts, cannot guess max t_exp")
+        
+        # TODO: CONSIDER NON-LINEAR SCENARIOS
+        k = float(count_limit) / float(max_count)
+
+        return (1 * k,  max_lambda, max_nu)
+
+    def poissonDistribution(self, x, rate):
+        if rate > 20:
+            sqrtt = np.sqrt(rate)
+            quot  = np.sqrt(2 * np.pi) * sqrtt
+            mu    = rate
+            p = np.exp(-.5 * ((x - mu) / sqrtt) ** 2) / quot
+        else:
+            p = np.exp(-rate) * rate ** x / np.math.gamma(x + 1)
+
+        return p
+
+    def normalInt(self, a, b, sigma, mu):
+        sqrt2 = 1.4142135623730951
+        q = 1 / (sqrt2 * sigma)
+        p = .5 * (erf((b - mu) * q) - erf((a - mu) * q))
+        
+        return p
+    
+    def getTexpDistribution(self, wl, count_limit, N = 1000):
+        Ie          = self.electronRatePerPixel(wl = wl)
+        texp_approx = self.getMaxTexp(wl = wl, count_limit = count_limit)[0]
+        texp_min    = np.max([0., texp_approx - texp_approx ** .5])
+        texp_max    = texp_approx + texp_approx ** .5
+        sigma       = self.ron / self.G            
+        t_exp       = np.linspace(texp_min, texp_max, N)
+        p           = np.zeros(N)
+        i           = 0
+        ca          = count_limit - .5
+        cb          = count_limit + .5
+        dt          = (texp_max - texp_min) / (N - 1)
+
+        print("Integration time estimate: {0:g} s".format(texp_approx))
+
+        for t in t_exp:
+            rate = Ie * t
+            max  = int(np.ceil(rate))
+            nes  = np.linspace(0, max, max + 1)
+            mus  = nes / self.G
+            p[i] = np.dot(
+                self.poissonDistribution(nes, rate),
+                self.normalInt(ca, cb, sigma = sigma, mu = mus))
+            i += 1
+
+        nans = np.isnan(p)
+
+        if len(nans.shape) > 0:
+            p[nans] = 0
+        
+        k =  np.sum(p * dt)
+        if k == 0.:
+            k = 1
+        
+        return np.array([t_exp, p / k])
+
+

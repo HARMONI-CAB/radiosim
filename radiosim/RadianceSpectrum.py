@@ -11,7 +11,8 @@ class RadianceSpectrum(ABC):
         self.fnum          = 0
         self.to_irradiance = -1
         self.power         = None
-        self.power_factor = 1
+        self.power_factor  = 1
+        self.native_wl     = None
 
     def units(self):
         return self.unit_type

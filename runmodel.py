@@ -17,10 +17,10 @@ import sys, argparse
 import traceback
 
 # Input spectrums
-lamp_2_150W   = radiosim.InterpolatedSpectrum('data/lamp-spectrum-2.csv')
+lamp_2_150W   = radiosim.InterpolatedSpectrum('data/lamp-spectrum.csv')
 lamp_2_150W.set_nominal_power_rating(2 * 150) # We know this consists of 2 x 150W watt sources
 
-lamp_normal   = radiosim.InterpolatedSpectrum('data/lamp-spectrum.csv')
+lamp_normal   = radiosim.InterpolatedSpectrum('data/lamp-spectrum-2.csv')
 
 # Transmission coefficients
 cryostat     = radiosim.InterpolatedResponse('data/t-cryostat.csv')
@@ -172,6 +172,8 @@ f        = 17.757 # Relay optics f/N (HRM-00509, page 16)
 lampcfg  = "150W"
 scale_s  = "4x4"
 t_exp    = -1
+exp_est  = False
+max_c    = 20000
 ron      = 5      # electrons per exposure. This is actually the
                   # standard deviation of a normal distribution
 G        = 1      # gain (electrons per count)
@@ -262,6 +264,20 @@ parser.add_argument(
     help = "simulate photon arrival as shot noise (Poisson)")
 
 parser.add_argument(
+    "-e",
+    dest = "exp_est",
+    action = 'store_true',
+    default = exp_est,
+    help = "estimate exposition time before saturation")
+
+parser.add_argument(
+    "-C",
+    dest = "max_c",
+    type = int,
+    default = max_c,
+    help = "max number of counts before saturation")
+
+parser.add_argument(
     "-f",
     action = 'store_true',
     dest = "freq",
@@ -283,6 +299,8 @@ G        = args.G
 counts   = args.counts
 ron      = args.ron
 power    = args.power
+exp_est  = args.exp_est
+max_c    = args.max_c
 
 # Sanity checks
 result = re.search(r"(\d+)x(\d+)", scale_s)
@@ -332,21 +350,71 @@ try:
             poisson = poisson,
             G       = G,
             ron     = ron)
+    
+    if exp_est:
+        max_wl = spectrum.get_max_wl()
+        print('Brightest wavelength: {0:g} µm'.format(max_wl * 1e6))
+        prob = det.getTexpDistribution(max_wl, max_c)
+        plt.figure()
+        plt.plot(
+            prob[0,:],
+            prob[1,:],
+            label = '$\lambda = {0:g}{{\mu}}m$, $c_{{max}}$ = {1} ADU, scale ${2}x{3}$'.format(
+                max_wl * 1e6,
+                max_c,
+                scale[0],
+                scale[1]
+            ))
 
-    # Compute photoelectrons per pixel
-    if t_exp < 0:
-        exps = [5, 10, 30, 60, 120]
+        title = 'Exposition time estimate ({0}, {1}, RON = {2} $e^-$, G = {3} $e^-/$adu)'.format(
+            grating,
+            ao,
+            ron,
+            G)
+        
+        plt.xlabel('$t_{exp} (s)$')
+        plt.ylabel('$p(t_{exp}|c_{max})$')
+
     else:
-        exps = [t_exp]
-
-    wl = np.linspace(lambda_min, lambda_max, 1000)
-
-    for t in exps:
-        if counts:
-            y = det.countsPerPixel(wl = wl, t = t)
+        # Compute photoelectrons per pixel
+        if t_exp < 0:
+            exps = [5, 10, 30, 60, 120]
         else:
-            y = det.electronsPerPixel(wl = wl, t = t)
-        plt.plot(wl * 1e6, y, label = '$t_{exp}=$' + str(t) + ' s')
+            exps = [t_exp]
+
+        wl = np.linspace(lambda_min, lambda_max, 1000)
+
+        for t in exps:
+            if counts:
+                y = det.countsPerPixel(wl = wl, t = t)
+            else:
+                y = det.electronsPerPixel(wl = wl, t = t)
+            plt.plot(wl * 1e6, y, label = '$t_{exp}=$' + str(t) + ' s')
+
+        plt.xlabel('Wavelength ($\mu m$)')
+
+        if counts:
+            plt.ylabel('ADC output')
+            title = 'Counts vs spaxel $\lambda$ ({0}, {1}, {2}x{3}, RON = {4} $e^-$, G = {5} $e^-/$adu)'.format(
+                grating,
+                ao,
+                scale[0],
+                scale[1],
+                ron,
+                G)
+        else:
+            plt.ylabel('Total $e^-$')
+            title = 'Photoelectrons vs spaxel $\lambda$ ({0}, {1}, {2}x{3})'.format(
+                grating,
+                ao,
+                scale[0],
+                scale[1])
+
+    if power > 0:
+        title += ', {0:g} W source'.format(power)
+
+    plt.title(title)
+    plt.legend()
 
 except Exception as e:
     print("\033[1;31mSimulator exception: \033[0;1m{0}\033[0m".format(e))
@@ -355,30 +423,7 @@ except Exception as e:
     print("\033[0m")
     sys.exit(1)
 
-plt.xlabel('Wavelength ($\mu m$)')
 
-if counts:
-    plt.ylabel('ADC output')
-    title = 'Counts vs spaxel $\lambda$ ({0}, {1}, {2}x{3}, RON = {4} $e^-$, G = {5} $e^-/$adu)'.format(
-        grating,
-        ao,
-        scale[0],
-        scale[1],
-        ron,
-        G)
-else:
-    plt.ylabel('Total $e^-$')
-    title = 'Photoelectrons vs spaxel $\lambda$ ({0}, {1}, {2}x{3})'.format(
-        grating,
-        ao,
-        scale[0],
-        scale[1])
-
-if power > 0:
-    title += ', {0:g} W source'.format(power)
-
-plt.title(title)
-plt.legend()
 plt.grid()
 
 if do_debug:
