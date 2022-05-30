@@ -18,7 +18,8 @@ class InterpolatedSpectrum(RadianceSpectrum.RadianceSpectrum):
 
         self.max_wl = resp[max_ndx, 0]
         self.max_I  = resp[max_ndx, 1]
-
+        self.native_wl = resp[:, 0]
+        
         self.interpolator = scipy.interpolate.interp1d(
             resp[:, 0],
             resp[:, 1],
