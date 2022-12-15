@@ -14,3 +14,5 @@ from .SpectrumPainter      import SpectrumPainter
 from .RadianceSpectrum     import RadianceSpectrum
 
 from .DetectorSimulator    import DetectorSimulator
+
+from .Parameters           import Parameters
