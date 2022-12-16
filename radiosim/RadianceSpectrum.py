@@ -25,6 +25,12 @@ class RadianceSpectrum(ABC):
         self.power        = power
         self.power_factor = 1
 
+    def is_adjustable(self):
+        return self.power is not None
+
+    def get_power(self):
+        return self.power
+    
     def adjust_power(self, power):
         if self.power is None:
             raise Exception("Cannot adjust spectrum source power: no nominal power rating set")

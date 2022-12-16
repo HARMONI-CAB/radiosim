@@ -2,4 +2,11 @@
 
 import simui
 
-simui.startSimUi()
+import radiosim.Parameters
+
+params = radiosim.Parameters()
+
+params.load_defaults()
+
+simui.startSimUi(params)
+

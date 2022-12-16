@@ -120,7 +120,7 @@ class Parameters():
         if eq_obj is None:
             raise RuntimeError(fr'No such equalizer filter: {equalizer}')
 
-        self.gratings[grating] = (filter_obj, eq_obj, R, lambda_min, lambda_max)
+        self.gratings[grating] = (filter_obj, eq_obj, R, lambda_min, lambda_max, filter)
     
     def get_grating(self, name):
         if name not in self.gratings:
@@ -145,6 +145,9 @@ class Parameters():
     def get_scales(self):
         return self.scales.keys()
 
+    def get_ao_mode_names(self):
+        return ['NOAO', 'SCAO', 'LTAO']
+    
     def make_response(self, grating, ao):
         response = CompoundResponse()
         ao       = ao.upper()
