@@ -22,10 +22,7 @@ class Parameters():
 
         self.finest_spaxel_size_mas = HARMONI_FINEST_SPAXEL_SIZE
         self.pixel_size             = HARMONI_PIXEL_SIZE
-        self.f             = 17.757 # Relay optics f/N (HRM-00509, page 16)
-        self.ron           = 5
-        self.G             = 1
-        self.QE            = .95
+
 
         self.load_stage('Cryostat',      't-cryostat.csv')
         self.load_stage('Detector',      't-detector.csv')
@@ -38,22 +35,22 @@ class Parameters():
         self.load_stage('IFU',           't-ifu.csv')
 
         self.is_spect_types = {
-            'spect_E'   : 'Spectral irradiance [Wm⁻²ν⁻¹]',
-            'photon_F'  : 'Specific photon flux [m⁻²s⁻¹ν⁻¹]',
+            'spect_E'   : ('Spectral irradiance',     'Wm⁻²ν⁻¹'),
+            'photon_F'  : ('Specific photon flux',    'm⁻²s⁻¹ν⁻¹'),
         }
 
         self.ccd_spect_types = {
-            'spect_E'   : 'Spectral irradiance [Wm⁻²ν⁻¹]',
-            'photon_F'  : 'Specific photon flux [m⁻²s⁻¹ν⁻¹]',
-            'dedt_Px'   : 'Electron rate per pixel [e⁻s⁻¹]',
-            'electrons' : 'Electrons per pixel [e⁻]',
-            'counts'    : 'Counts per pixel [adu]'
+            'spect_E'   : ('Spectral irradiance',     'Wm⁻²ν⁻¹'),
+            'photon_F'  : ('Specific photon flux',    'm⁻²s⁻¹ν⁻¹'),
+            'dedt_Px'   : ('Electron rate per pixel', 'e⁻s⁻¹'),
+            'electrons' : ('Electrons per pixel',     'e⁻'),
+            'counts'    : ('Counts per pixel',        'adu')
         }
 
         self.transmission_types = {}
 
         for stage in self.get_stage_names():
-            self.transmission_types[stage] = stage
+            self.transmission_types[stage] = (stage, 'fraction')
         
         self.spect_types = {
             'is_out'             : ('Integrating sphere output', self.is_spect_types),

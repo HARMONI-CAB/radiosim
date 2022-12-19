@@ -112,8 +112,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
             return
 
         for spect in spectrums:
+            name, units = self.params.get_spectrum_desc_for_type(type, spect)
+            text = fr'{name} [{units}]'
             self.spectYAxisCombo.addItem(
-                self.params.get_spectrum_desc_for_type(type, spect),
+                text,
                 userData = spect)
         self.spectYAxisCombo.setEnabled(True)
 
@@ -250,7 +252,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
             if spect is None:
                 obj = None
             else:
-                obj = self.params.get_spectrum_desc_for_type(type, spect)
+                obj, _ = self.params.get_spectrum_desc_for_type(type, spect)
                 if obj is None:
                     raise Exception(fr'Spectrum {spect} does not exist as {type_desc}. Is your configuration up to date with the current software version?')
             
@@ -260,6 +262,22 @@ class SimUiWindow(QtWidgets.QMainWindow):
                     raise RuntimeError(fr'Failed to set spectrum: UI sync error')
                 self.spectYAxisCombo.setCurrentIndex(index)
         
+    def get_y_axis_selection(self):
+        type = self.spectTypeCombo.currentData()
+        if type is None:
+            return None
+        spect = self.spectYAxisCombo.currentData()
+        if spect is None:
+            return None
+        desc, units = self.params.get_spectrum_desc_for_type(type, spect)
+        return desc, units
+    
+    def get_x_axis_selection(self):
+        if self.spectXAcisCombo.currentIndex() == 1:
+            return 'Wavelength', 'µm'
+        else:
+            return 'Frequency', 'THz'
+
     def set_texp_passband(self, passband):
         index = self.passBandCombo.findData(passband)
         if index == -1:
