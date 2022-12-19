@@ -1,5 +1,5 @@
 from PyQt6 import QtCore
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6 import uic
@@ -13,6 +13,9 @@ from radiosim.Parameters import HARMONI_PIXEL_SIZE, \
     HARMONI_PX_PER_SP_ACROSS, HARMONI_PX_AREA
 
 class SimUiWindow(QtWidgets.QMainWindow):
+    plotSpectrum    = pyqtSignal()
+    overlaySpectrum = pyqtSignal()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         dir = pathlib.Path(__file__).parent.resolve()
@@ -27,6 +30,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.lamp2TypeCombo.activated.connect(self.on_state_widget_changed)
         self.lamp2AttenSlider.valueChanged.connect(self.on_atten2_changed)
+
+        self.spectPlotButton.clicked.connect(self.plotSpectrum)
+        self.spectOverlayButton.clicked.connect(self.overlaySpectrum)
 
         self.spectTypeCombo.activated.connect(self.on_spect_type_changed)
 
