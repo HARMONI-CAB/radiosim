@@ -15,9 +15,16 @@ class AttenuatedSpectrum(RadianceSpectrum.RadianceSpectrum):
         self.power_factor   = sourceSpectrum.power_factor
         self.max_wl         = -1
 
+    def get_source_spectrum(self):
+            return self.sourceSpectrum
+    
     def push_filter(self, filter):
         self.max_wl = -1
         self.filters.push_back(filter)
+    
+    def set_fnum(self, fnum):
+        super().set_fnum(fnum)
+        self.sourceSpectrum.set_fnum(fnum)
     
     # TODO: take emissivity of each intermediate filter into account
     def get_I(self, wl):

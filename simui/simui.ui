@@ -506,7 +506,7 @@ font-weight: bold;</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_6">
         <item row="0" column="0">
-         <widget class="QGroupBox" name="plotGroupBox">
+         <widget class="QGroupBox" name="spectrumControlBox">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -618,7 +618,7 @@ font-weight: bold;</string>
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QGroupBox" name="fdfg">
+         <widget class="QGroupBox" name="plotControlBox">
           <property name="title">
            <string>Plot control</string>
           </property>

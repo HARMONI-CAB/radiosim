@@ -53,9 +53,9 @@ class Parameters():
             self.transmission_types[stage] = (stage, 'fraction')
         
         self.spect_types = {
-            'is_out'             : ('Integrating sphere output', self.is_spect_types),
-            'detector'           : ('Detector', self.ccd_spect_types),
-            'Total transmission' : ('Total transmission spectrum', self.transmission_types),
+            'is_out'       : ('Integrating sphere output', self.is_spect_types),
+            'detector'     : ('Detector', self.ccd_spect_types),
+            'transmission' : ('Total transmission spectrum', self.transmission_types),
         }
 
     

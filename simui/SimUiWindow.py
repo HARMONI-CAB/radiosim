@@ -1,7 +1,7 @@
 from PyQt6 import QtCore
 from PyQt6.QtCore import pyqtSignal
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox
 from PyQt6 import uic
 from radiosim import SimulationConfig, DetectorConfig
 from .PlotWidget import PlotWidget
@@ -26,6 +26,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.connect_all()
         self.plotWidget = PlotWidget()
         self.plotStack.insertWidget(1, self.plotWidget)
+        self.curr_x_units = None
+        self.curr_y_units = None
 
     def connect_all(self):
         self.lamp1TypeCombo.activated.connect(self.on_state_widget_changed)
@@ -36,16 +38,59 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.spectPlotButton.clicked.connect(self.plotSpectrum)
         self.spectOverlayButton.clicked.connect(self.overlaySpectrum)
+        self.spectClearAllbuton.clicked.connect(self.on_plot_clear)
 
         self.spectTypeCombo.activated.connect(self.on_spect_type_changed)
 
         self.passBandCombo.activated.connect(self.on_state_widget_changed)
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
 
+    def clear_plot(self):
+        self.plotWidget.clear()
+        self.plotStack.setCurrentIndex(0)
+        self.curr_x_units = None
+        self.curr_y_units = None
+
     def set_plot(self, *args, xlabel = None, ylabel = None, **kwargs):
         self.plotWidget.plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
         self.plotStack.setCurrentIndex(1)
-        
+
+    def spectrum_plot(self, *args, x_desc, x_units, y_desc, y_units, **kwargs):
+        if self.curr_x_units is not None and x_units != self.curr_x_units:
+            if not self.ask_yes_no(
+                fr'Units of the horizontal axis differ from those of the current plot '
+                fr'(current is {self.curr_x_units}, requested is {x_units}). '
+                fr'This will clear the current plot. Are you sure?',
+                'X axis unit mismatch'):
+                return
+            self.clear_plot()
+
+        if self.curr_y_units is not None and y_units != self.curr_y_units:
+            if not self.ask_yes_no(
+                fr'Units of the vertical axis differ from those of the current plot '
+                fr'(current is {self.curr_y_units}, requested is {y_units}). '
+                fr'This will clear the current plot. Are you sure?',
+                'Y axis unit mismatch'):
+                return
+            self.clear_plot()
+
+        xlabel = fr'{x_desc} [{x_units}]'
+        ylabel = fr'{y_desc} [{y_units}]'
+
+        self.curr_x_units = x_units
+        self.curr_y_units = y_units
+
+        self.set_plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
+
+    def ask_yes_no(self, text, title):
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle(title)
+        dlg.setText(text)
+        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        dlg.setIcon(QMessageBox.Icon.Question)
+        button = dlg.exec()
+        return button == QDialogButtonBox.StandardButton.Yes.value
+
     def refresh_params(self):
         gratings = self.params.get_grating_names()
 
@@ -149,6 +194,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.lamp1AttenSlider.setEnabled(lamp1 is not None)
         self.lamp2AttenSlider.setEnabled(lamp2 is not None)
+
+        anyLamp = lamp1 is not None or lamp2 is not None
+        self.spectrumControlBox.setEnabled(anyLamp)
+        self.plotControlBox.setEnabled(anyLamp)
 
     def refresh_exp_time_ui_state(self):
         passBandCenterEnabled = self.tExpPassBandRadio.isChecked()
@@ -273,11 +322,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
         return desc, units
     
     def get_x_axis_selection(self):
-        if self.spectXAcisCombo.currentIndex() == 1:
-            return 'Wavelength', 'µm'
-        else:
+        if self.spectXAxisCombo.currentIndex() == 1:
             return 'Frequency', 'THz'
-
+        else:
+            return 'Wavelength', 'µm'
+        
     def set_texp_passband(self, passband):
         index = self.passBandCombo.findData(passband)
         if index == -1:
@@ -299,7 +348,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.ron        = self.ronSpin.value()
         config.QE         = self.qeSpin.value() * 1e-2
         config.pixel_size = self.pxSizeSpin.value() * 1e-6
-        config.f          = self.fNSpin.setValue()
+        config.f          = self.fNSpin.value()
 
         return config
 
@@ -402,4 +451,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
     def on_spect_type_changed(self):
         self.refresh_spect_list()
+    
+    def on_plot_clear(self):
+        self.clear_plot()
     
