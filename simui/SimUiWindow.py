@@ -218,6 +218,35 @@ class SimUiWindow(QtWidgets.QMainWindow):
             
             self.scaleCombo.setCurrentIndex(index)
 
+    def set_spectrum_config(self, type, spect):
+        if type is None:
+            obj = None
+        else:
+            obj = self.params.get_spectrum_type_desc(type)
+            if obj is None:
+                raise Exception(fr'Spectrum type {type} does not exist. Is your configuration up to date with the current software version?')
+
+        if obj is not None:
+            index = self.spectTypeCombo.findData(type)
+            if index == -1:
+                raise RuntimeError(fr'Failed to set spectrum type: UI sync error')
+            self.spectTypeCombo.setCurrentIndex(index)
+            self.refresh_spect_list()
+
+            type_desc = obj
+            if spect is None:
+                obj = None
+            else:
+                obj = self.params.get_spectrum_desc_for_type(type, spect)
+                if obj is None:
+                    raise Exception(fr'Spectrum {spect} does not exist as {type_desc}. Is your configuration up to date with the current software version?')
+            
+            if obj is not None:
+                index = self.spectYAxisCombo.findData(spect)
+                if index == -1:
+                    raise RuntimeError(fr'Failed to set spectrum: UI sync error')
+                self.spectYAxisCombo.setCurrentIndex(index)
+        
     def set_texp_passband(self, passband):
         index = self.passBandCombo.findData(passband)
         if index == -1:
@@ -236,6 +265,14 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.expTimeSpin.setValue(config.t_exp)
             self.satLevelSpin.setValue(config.saturation)
             self.tempSpin.setValue(config.temperature - 273.15)
+
+
+            if config.x_axis == 'frequency':
+                self.spectXAxisCombo.setCurrentIndex(1)
+            else:
+                self.spectXAxisCombo.setCurrentIndex(0)
+            
+            self.set_spectrum_config(config.type, config.y_axis)
 
             self.set_texp_passband(config.texp_band)
 
@@ -277,6 +314,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.saturation    = self.satLevelSpin.value()
         config.temperature   = self.tempSpin.value + 273.15
 
+        config.type          = self.spectTypeCombo.currentData()
+        config.x_axis        = 'frequency' if self.spectXAxisCombo.currentIndex() == 1 else 'wavelength'
+        config.y_axis        = self.spectYAxisCombo.currentData()
+
         config.spect_log     = self.logScaleCheck.isChecked()
         config.noisy         = self.photonNoiseCheck.isChecked()
 
@@ -285,7 +326,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.texp_wl       = self.tExpWlSpin.value()
         config.texp_log      = self.tExpLogScaleCheck.isChecked()
         
-    
+
         return config
 
     ################################# Slots ####################################
