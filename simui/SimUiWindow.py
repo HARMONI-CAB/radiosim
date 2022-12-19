@@ -270,8 +270,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def set_detector_config(self, config):
         self.gainSpin.setValue(config.G)
         self.ronSpin.setValue(config.ron)
-        self.qeSpin.setValue(config.qe * 1e2)
-        self.pxSizeSpin.setValue(config.pixel_size)
+        self.qeSpin.setValue(config.QE * 1e2)
+        self.pxSizeSpin.setValue(config.pixel_size * 1e6)
         self.fNSpin.setValue(config.f)
 
     def get_detector_config(self):
@@ -279,8 +279,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         config.G          = self.gainSpin.value()
         config.ron        = self.ronSpin.value()
-        config.qe         = self.qeSpin.value() * 1e-2
-        config.pixel_size = self.pxSizeSpin.value()
+        config.QE         = self.qeSpin.value() * 1e-2
+        config.pixel_size = self.pxSizeSpin.value() * 1e-6
         config.f          = self.fNSpin.setValue()
 
         return config
@@ -293,10 +293,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.set_ao_mode(config.aomode)
             self.set_scale(config.scale)
 
+            self.set_detector_config(config.detector)
+
             self.expTimeSpin.setValue(config.t_exp)
             self.satLevelSpin.setValue(config.saturation)
             self.tempSpin.setValue(config.temperature - 273.15)
-
 
             if config.x_axis == 'frequency':
                 self.spectXAxisCombo.setCurrentIndex(1)
@@ -305,6 +306,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
             
             self.set_spectrum_config(config.type, config.y_axis)
             self.set_texp_passband(config.texp_band)
+            self.intStepsSpin.setValue(config.texp_iters)
 
             if config.texp_use_band:
                 self.tExpPassBandRadio.setChecked(True)
@@ -364,9 +366,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.texp_use_band = self.tExpPassBandRadio.isChecked()
         config.texp_wl       = self.tExpWlSpin.value()
         config.texp_log      = self.tExpLogScaleCheck.isChecked()
-        
-        config.detector_config = self.get_detector_config()
-        
+        config.texp_iters    = self.intStepsSpin.value()
+
+        config.detector      = self.get_detector_config()
+
         return config
 
     ################################# Slots ####################################
