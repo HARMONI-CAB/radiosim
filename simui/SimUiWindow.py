@@ -28,6 +28,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.lamp2TypeCombo.activated.connect(self.on_state_widget_changed)
         self.lamp2AttenSlider.valueChanged.connect(self.on_atten2_changed)
 
+        self.spectTypeCombo.activated.connect(self.on_spect_type_changed)
+
         self.passBandCombo.activated.connect(self.on_state_widget_changed)
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
 
@@ -60,7 +62,15 @@ class SimUiWindow(QtWidgets.QMainWindow):
         scales = self.params.get_scales()
         for s in scales:
             self.scaleCombo.addItem(fr'{s[0]}x{s[1]}', userData = list(s))
+        self.refresh_spect_list()
 
+        # Add spectrum types
+        self.spectTypeCombo.clear()
+        self.spectYAxisCombo.clear()
+
+        for type in self.params.get_spectrum_types():
+            self.spectTypeCombo.addItem(self.params.get_spectrum_type_desc(type), userData = type)
+            
         # Populate passband centers:
         self.passBandCombo.clear()
         for g in gratings:
@@ -75,6 +85,24 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.pxSizeSpin.setValue(HARMONI_PIXEL_SIZE * 1e6)
 
         self.refresh_ui_state()
+
+    def refresh_spect_list(self):
+        self.spectYAxisCombo.clear()
+        type = self.spectTypeCombo.currentData()
+        if type is None:
+            self.spectYAxisCombo.setEnabled(False)
+            return
+        
+        spectrums = self.params.get_spectrums_for_type(type)
+        if spectrums is None:
+            self.spectYAxisCombo.setEnabled(False)
+            return
+
+        for spect in spectrums:
+            self.spectYAxisCombo.addItem(
+                self.params.get_spectrum_desc_for_type(type, spect),
+                userData = spect)
+        self.spectYAxisCombo.setEnabled(True)
 
     def apply_params(self, params):
         self.params = params
@@ -270,3 +298,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def on_atten2_changed(self, value):
         self.refresh_lamp_control_ui_state()
 
+    def on_spect_type_changed(self):
+        self.refresh_spect_list()
+    

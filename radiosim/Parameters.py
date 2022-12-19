@@ -33,6 +33,29 @@ class Parameters():
         self.load_stage('Spectrograph',  't-spectrograph.csv')
         self.load_stage('IFU',           't-ifu.csv')
 
+        self.is_spect_types = {
+            'spect_E'   : 'Spectral irradiance [Wm⁻²ν⁻¹]',
+            'photon_F'  : 'Specific photon flux [m⁻²s⁻¹ν⁻¹]',
+        }
+
+        self.ccd_spect_types = {
+            'spect_E'   : 'Spectral irradiance [Wm⁻²ν⁻¹]',
+            'photon_F'  : 'Specific photon flux [m⁻²s⁻¹ν⁻¹]',
+            'dedt_Px'   : 'Electron rate per pixel [e⁻s⁻¹]',
+            'electrons' : 'Electrons per pixel [e⁻]',
+            'counts'    : 'Counts per pixel [adu]'
+        }
+
+        self.transmission_types = {}
+
+        for stage in self.get_stage_names():
+            self.transmission_types[stage] = stage
+        
+        self.spect_types = {
+            'is_out'             : ('Integrating sphere output', self.is_spect_types),
+            'detector'           : ('Detector', self.ccd_spect_types),
+            'Total transmission' : ('Total transmission spectrum', self.transmission_types),
+        }
 
     def resolve_data_file(self, path):
         if len(path) == 0:
@@ -44,6 +67,28 @@ class Parameters():
         dir = str(pathlib.Path(__file__).parent.resolve())
 
         return dir + fr'/{RADIOSIM_RELATIVE_DATA_DIR}/' + path
+    
+    def get_spectrum_types(self):
+        return self.spect_types.keys()
+
+    def get_spectrum_type_desc(self, type):
+        if type not in self.spect_types.keys():
+            return None
+        return self.spect_types[type][0]
+
+    def get_spectrums_for_type(self, type):
+        if type not in self.spect_types.keys():
+            return None
+        return self.spect_types[type][1].keys()
+
+    def get_spectrum_desc_for_type(self, type, spec):
+        if type not in self.spect_types.keys():
+            return None
+
+        if spec not in self.get_spectrums_for_type(type):
+            return None
+
+        return self.spect_types[type][1][spec]
     
     def load_lamp(self, name, path, rating = None):
         full_path = self.resolve_data_file(path)
