@@ -16,3 +16,4 @@ from .RadianceSpectrum     import RadianceSpectrum
 from .DetectorSimulator    import DetectorSimulator
 
 from .Parameters           import Parameters
+from .SimulationConfig     import SimulationConfig
