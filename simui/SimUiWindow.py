@@ -23,7 +23,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
     def connect_all(self):
         self.lamp1TypeCombo.activated.connect(self.on_state_widget_changed)
+        self.lamp1AttenSlider.valueChanged.connect(self.on_atten1_changed)
+
         self.lamp2TypeCombo.activated.connect(self.on_state_widget_changed)
+        self.lamp2AttenSlider.valueChanged.connect(self.on_atten2_changed)
+
         self.passBandCombo.activated.connect(self.on_state_widget_changed)
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
 
@@ -88,14 +92,17 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.lamp1PowerSpin.setEnabled(lamp1Adjustable)
         self.lamp2PowerSpin.setEnabled(lamp2Adjustable)
 
+        self.lamp1AttenLabel.setEnabled(lamp1Adjustable)
+        self.lamp2AttenLabel.setEnabled(lamp2Adjustable)
+
         if lamp1Adjustable:
             self.lamp1PowerSpin.setValue(lamp1.get_power())
 
         if lamp2Adjustable:
             self.lamp2PowerSpin.setValue(lamp2.get_power())
 
-        self.lamp1AttenLabel = fr'{self.lamp1AttenSlider.value()} %'
-        self.lamp2AttenLabel = fr'{self.lamp2AttenSlider.value()} %'
+        self.lamp1AttenLabel.setText(fr'{self.lamp1AttenSlider.value()} %')
+        self.lamp2AttenLabel.setText(fr'{self.lamp2AttenSlider.value()} %')
 
         self.lamp1AttenSlider.setEnabled(lamp1 is not None)
         self.lamp2AttenSlider.setEnabled(lamp2 is not None)
@@ -257,5 +264,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def on_state_widget_changed(self):
         self.refresh_ui_state()
 
+    def on_atten1_changed(self, value):
+        self.refresh_lamp_control_ui_state()
 
+    def on_atten2_changed(self, value):
+        self.refresh_lamp_control_ui_state()
 
