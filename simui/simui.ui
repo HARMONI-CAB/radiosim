@@ -623,43 +623,7 @@ font-weight: bold;</string>
            <string>Plot control</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_15">
-           <item row="0" column="0">
-            <widget class="QPushButton" name="spectPlotButton">
-             <property name="styleSheet">
-              <string notr="true">background-color: #1f53a6;
-color: white;
-font-weight: bold;</string>
-             </property>
-             <property name="text">
-              <string>&amp;Plot</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QPushButton" name="spectClearAllbuton">
-             <property name="styleSheet">
-              <string notr="true">background-color: #a61f1f;
-color: white;
-font-weight: bold;</string>
-             </property>
-             <property name="text">
-              <string>&amp;Clear all</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QPushButton" name="spectOverlayButton">
-             <property name="styleSheet">
-              <string notr="true">background-color: #1f53a6;
-color: white;
-font-weight: bold;</string>
-             </property>
-             <property name="text">
-              <string>Plot and &amp;overlay</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
+           <item row="4" column="0">
             <spacer name="verticalSpacer_5">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -674,6 +638,42 @@ font-weight: bold;</string>
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="3" column="0">
+            <widget class="QPushButton" name="spectClearAllbuton">
+             <property name="styleSheet">
+              <string notr="true">background-color: #a61f1f;
+color: white;
+font-weight: bold;</string>
+             </property>
+             <property name="text">
+              <string>&amp;Clear all</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QPushButton" name="spectPlotButton">
+             <property name="styleSheet">
+              <string notr="true">background-color: #1f53a6;
+color: white;
+font-weight: bold;</string>
+             </property>
+             <property name="text">
+              <string>Plot and &amp;clear</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QPushButton" name="spectOverlayButton">
+             <property name="styleSheet">
+              <string notr="true">background-color: #1f53a6;
+color: white;
+font-weight: bold;</string>
+             </property>
+             <property name="text">
+              <string>&amp;Plot</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
