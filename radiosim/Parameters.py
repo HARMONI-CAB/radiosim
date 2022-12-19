@@ -22,6 +22,10 @@ class Parameters():
 
         self.finest_spaxel_size_mas = HARMONI_FINEST_SPAXEL_SIZE
         self.pixel_size             = HARMONI_PIXEL_SIZE
+        self.f             = 17.757 # Relay optics f/N (HRM-00509, page 16)
+        self.ron           = 5
+        self.G             = 1
+        self.QE            = .95
 
         self.load_stage('Cryostat',      't-cryostat.csv')
         self.load_stage('Detector',      't-detector.csv')
@@ -57,6 +61,7 @@ class Parameters():
             'Total transmission' : ('Total transmission spectrum', self.transmission_types),
         }
 
+    
     def resolve_data_file(self, path):
         if len(path) == 0:
             raise RuntimeError('Path is empty')

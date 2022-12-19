@@ -339,7 +339,7 @@ font-weight: bold;</string>
     <item row="0" column="2" rowspan="5">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -556,6 +556,118 @@ font-weight: bold;</string>
         <string>Spectrum</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_6">
+        <item row="0" column="0">
+         <widget class="QGroupBox" name="plotGroupBox">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="title">
+           <string>Spectrum configuration</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="4" column="1" colspan="2">
+            <widget class="QCheckBox" name="photonNoiseCheck">
+             <property name="text">
+              <string>Photon noise</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="2">
+            <widget class="QComboBox" name="spectYAxisCombo">
+             <item>
+              <property name="text">
+               <string>Spectrial irradiance</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Specific photon Flux</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Electron rate per pixel</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Electrons per pixel</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Counts per pixel</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_12">
+             <property name="text">
+              <string>Type</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="2">
+            <widget class="QComboBox" name="spectTypeCombo">
+             <item>
+              <property name="text">
+               <string>IS output</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Detector</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Total transmission</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="2" column="0" rowspan="2">
+            <widget class="QLabel" name="label_17">
+             <property name="text">
+              <string>Y-axis</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QCheckBox" name="logScaleCheck">
+             <property name="text">
+              <string>Log scale</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="2">
+            <widget class="QComboBox" name="spectXAxisCombo">
+             <item>
+              <property name="text">
+               <string>Wavelength</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Frequency</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_13">
+             <property name="text">
+              <string>X-axis</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
         <item row="0" column="1">
          <widget class="QGroupBox" name="fdfg">
           <property name="title">
@@ -617,130 +729,27 @@ font-weight: bold;</string>
           </layout>
          </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QGroupBox" name="groupBox_5">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="title">
-           <string>Spectrum configuration</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_5">
-           <item row="4" column="1" colspan="2">
-            <widget class="QCheckBox" name="photonNoiseCheck">
-             <property name="text">
-              <string>Photon noise</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1" colspan="2">
-            <widget class="QComboBox" name="spectTypeCombo">
-             <item>
+        <item row="1" column="0" colspan="2">
+         <widget class="QStackedWidget" name="plotStack">
+          <widget class="QWidget" name="page">
+           <layout class="QGridLayout" name="gridLayout_7">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_11">
               <property name="text">
-               <string>IS output</string>
+               <string>*No plots (yet)*</string>
               </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Detector</string>
+              <property name="textFormat">
+               <enum>Qt::MarkdownText</enum>
               </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Total transmission</string>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
               </property>
-             </item>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_13">
-             <property name="text">
-              <string>X-axis</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_12">
-             <property name="text">
-              <string>Type</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1" colspan="2">
-            <widget class="QComboBox" name="spectXAxisCombo">
-             <item>
-              <property name="text">
-               <string>Wavelength</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Frequency</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="2" column="0" rowspan="2">
-            <widget class="QLabel" name="label_17">
-             <property name="text">
-              <string>Y-axis</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="2">
-            <widget class="QComboBox" name="spectYAxisCombo">
-             <item>
-              <property name="text">
-               <string>Spectrial irradiance</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Specific photon Flux</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Electron rate per pixel</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Electrons per pixel</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Counts per pixel</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QCheckBox" name="logScaleCheck">
-             <property name="text">
-              <string>Log scale</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="page_2"/>
          </widget>
-        </item>
-        <item row="1" column="0">
-         <spacer name="verticalSpacer">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
         </item>
        </layout>
       </widget>

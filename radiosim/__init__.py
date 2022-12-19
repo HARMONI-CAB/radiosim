@@ -17,3 +17,4 @@ from .DetectorSimulator    import DetectorSimulator
 
 from .Parameters           import Parameters
 from .SimulationConfig     import SimulationConfig
+from .SimulationConfig     import DetectorConfig

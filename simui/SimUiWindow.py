@@ -1,9 +1,10 @@
 from PyQt6 import QtCore
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QMessageBox
 from PyQt6 import uic
-from radiosim import SimulationConfig
+from radiosim import SimulationConfig, DetectorConfig
+from .PlotWidget import PlotWidget
 
 import pathlib
 import traceback
@@ -23,7 +24,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("QRadioSim - The HARMONI's radiometric simulator")
         self.refresh_ui_state()
         self.connect_all()
-        
+        self.plotWidget = PlotWidget()
+        self.plotStack.insertWidget(1, self.plotWidget)
+
     def connect_all(self):
         self.lamp1TypeCombo.activated.connect(self.on_state_widget_changed)
         self.lamp1AttenSlider.valueChanged.connect(self.on_atten1_changed)
@@ -39,6 +42,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.passBandCombo.activated.connect(self.on_state_widget_changed)
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
 
+    def set_plot(self, *args, xlabel = None, ylabel = None, **kwargs):
+        self.plotWidget.plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
+        self.plotStack.setCurrentIndex(1)
+        
     def refresh_params(self):
         gratings = self.params.get_grating_names()
 
@@ -260,6 +267,24 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.passBandCombo.setCurrentIndex(index)
 
+    def set_detector_config(self, config):
+        self.gainSpin.setValue(config.G)
+        self.ronSpin.setValue(config.ron)
+        self.qeSpin.setValue(config.qe * 1e2)
+        self.pxSizeSpin.setValue(config.pixel_size)
+        self.fNSpin.setValue(config.f)
+
+    def get_detector_config(self):
+        config = DetectorConfig()
+
+        config.G          = self.gainSpin.value()
+        config.ron        = self.ronSpin.value()
+        config.qe         = self.qeSpin.value() * 1e-2
+        config.pixel_size = self.pxSizeSpin.value()
+        config.f          = self.fNSpin.setValue()
+
+        return config
+
     def set_config(self, config):
         try:
             self.set_lamp_1(config.lamp1.config)
@@ -279,7 +304,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
                 self.spectXAxisCombo.setCurrentIndex(0)
             
             self.set_spectrum_config(config.type, config.y_axis)
-
             self.set_texp_passband(config.texp_band)
 
             if config.texp_use_band:
@@ -310,15 +334,24 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def get_config(self):
         config = SimulationConfig()
         
-        config.lamp1.config = None if self.lamp1TypeCombo.currentData() is None else self.lamp1TypeCombo.currentText()
-        config.lamp2.config = None if self.lamp2TypeCombo.currentData() is None else self.lamp2TypeCombo.currentText()
+        # Read lamp config
+        lamp1 = self.lamp1TypeCombo.currentData()
+        lamp2 = self.lamp2TypeCombo.currentData()
+
+        config.lamp1.config      = None if lamp1 is None else self.lamp1TypeCombo.currentText()
+        config.lamp1.power       = None if lamp1 is None else self.lamp1PowerSpin.value()
+        config.lamp1.attenuation = None if lamp1 is None else self.lamp1AttenSlider.value()
+
+        config.lamp2.config      = None if lamp2 is None else self.lamp1TypeCombo.currentText()
+        config.lamp2.power       = None if lamp2 is None else self.lamp1PowerSpin.value()
+        config.lamp2.attenuation = None if lamp2 is None else self.lamp1AttenSlider.value()
 
         config.grating       = self.gratingCombo.currentText()
         config.aomode        = self.aoModeCombo.currentText()
         config.scale         = self.scaleCombo.currentData()
         config.t_exp         = self.expTimeSpin.value()
         config.saturation    = self.satLevelSpin.value()
-        config.temperature   = self.tempSpin.value + 273.15
+        config.temperature   = self.tempSpin.value() + 273.15
 
         config.type          = self.spectTypeCombo.currentData()
         config.x_axis        = 'frequency' if self.spectXAxisCombo.currentIndex() == 1 else 'wavelength'
@@ -332,7 +365,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.texp_wl       = self.tExpWlSpin.value()
         config.texp_log      = self.tExpLogScaleCheck.isChecked()
         
-
+        config.detector_config = self.get_detector_config()
+        
         return config
 
     ################################# Slots ####################################
