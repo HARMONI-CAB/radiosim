@@ -359,7 +359,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         # Read lamp config
         for lamp in self.lamp_widgets.keys():
-            config.set_lamp_config(self.lamp_widgets[lamp].get_config())
+            config.set_lamp_config(lamp, self.lamp_widgets[lamp].get_config())
         
         config.grating       = self.gratingCombo.currentText()
         config.aomode        = self.aoModeCombo.currentText()

@@ -31,6 +31,8 @@ class SimUI(QObject):
 
     def simulate_spectrum(self):
         self.config = self.window.get_config()
+
+        self.config.save_to_file('/dev/stdout')
         self.x_axis_name, self.x_axis_units = self.window.get_x_axis_selection()
         self.y_axis_name, self.y_axis_units = self.window.get_y_axis_selection()
 
@@ -117,7 +119,6 @@ class SimUI(QObject):
         tdesc   = self.params.get_spectrum_type_desc(type)
         desc, _ = self.params.get_spectrum_desc_for_type(type, y_axis)
 
-        self.config.save_to_file('/dev/stdout')
         self.window.spectrum_plot(
             x,
             y,

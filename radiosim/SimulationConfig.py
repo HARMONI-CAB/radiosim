@@ -82,7 +82,7 @@ class DetectorConfig(SerializableConfig):
     def save(self):
         self.save_param('G')
         self.save_param('ron')
-        self.save_param('Q_E')
+        self.save_param('QE')
         self.save_param('pixel_size')
         self.save_param('f')
 
