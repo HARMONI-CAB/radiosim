@@ -106,7 +106,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for lamp in lamps:
             params = self.params.get_lamp_params(lamp)
             widget = LampControlWidget(lamp, params)
-            self.lampLayout.insertWidget(0, widget)
+            self.lampLayout.insertWidget(-1, widget)
             widget.changed.connect(self.on_lamp_changed)
             self.lamp_widgets[lamp] = widget
         

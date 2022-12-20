@@ -32,7 +32,10 @@ class SimUI(QObject):
     def simulate_spectrum(self):
         self.config = self.window.get_config()
 
+        print('------------------------------------------')
         self.config.save_to_file('/dev/stdout')
+        print('------------------------------------------')
+
         self.x_axis_name, self.x_axis_units = self.window.get_x_axis_selection()
         self.y_axis_name, self.y_axis_units = self.window.get_y_axis_selection()
 
@@ -43,16 +46,22 @@ class SimUI(QObject):
 
         # Initialize spectrum
         overlapped = radiosim.OverlappedSpectrum()
-
+        
         # Spectrum coming from all lamps
+        self.lamp_text = ''
         for lamp in self.config.lamps.keys():
             config = self.config.lamps[lamp]
             if config.is_on:
-                lamp_spectrum = radiosim.AttenuatedSpectrum(self.params.get_lamp(lamp))
+                if len(self.lamp_text) > 0:
+                    self.lamp_text += ' + '
+                self.lamp_text += lamp
+                
+                lamp_spectrum = self.params.get_lamp(lamp)
+                atten_spectrum = radiosim.AttenuatedSpectrum(lamp_spectrum)
                 if config.power is not None:
                     lamp_spectrum.adjust_power(config.power)
-                lamp_spectrum.set_attenuation(config.attenuation * 1e-2)
-                overlapped.push_spectrum(lamp_spectrum)
+                atten_spectrum.set_attenuation(config.attenuation * 1e-2)
+                overlapped.push_spectrum(atten_spectrum)
 
         spectrum = radiosim.AttenuatedSpectrum(overlapped)
         spectrum.push_filter(response)
@@ -126,7 +135,6 @@ class SimUI(QObject):
             raise Exception(fr'Invalid spectrum type {type}')
         
         tdesc   = self.params.get_spectrum_type_desc(type)
-        desc, _ = self.params.get_spectrum_desc_for_type(type, y_axis)
 
         self.window.spectrum_plot(
             x,
@@ -135,7 +143,7 @@ class SimUI(QObject):
             x_units = self.x_axis_units,
             y_desc  = self.y_axis_name,
             y_units = self.y_axis_units,
-            label   = fr'{desc} ({tdesc}, {self.config.grating}, {self.config.aomode})')
+            label   = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})')
 
     def run(self):
         self.window.show()
