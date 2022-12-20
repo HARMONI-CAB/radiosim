@@ -44,6 +44,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.passBandCombo.activated.connect(self.on_state_widget_changed)
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
+        
+        self.logScaleCheck.toggled.connect(self.on_log_scale_changed)
 
     def clear_plot(self):
         self.plotWidget.clear()
@@ -454,4 +456,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
     
     def on_plot_clear(self):
         self.clear_plot()
+    
+    def on_log_scale_changed(self):
+        self.plotWidget.set_log_scale(self.logScaleCheck.isChecked())
     

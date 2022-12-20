@@ -373,6 +373,12 @@ font-weight: bold;</string>
           <layout class="QGridLayout" name="gridLayout_13">
            <item row="0" column="1">
             <widget class="QSpinBox" name="intStepsSpin">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="minimum">
               <number>1</number>
              </property>
@@ -400,27 +406,10 @@ font-weight: bold;</string>
            <string>Detector properties</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_8">
-           <item row="3" column="1" colspan="2">
-            <widget class="QDoubleSpinBox" name="qeSpin">
-             <property name="suffix">
-              <string> %</string>
-             </property>
-             <property name="value">
-              <double>95.000000000000000</double>
-             </property>
-            </widget>
-           </item>
            <item row="0" column="0">
             <widget class="QLabel" name="label_23">
              <property name="text">
               <string>Gain</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0" colspan="2">
-            <widget class="QLabel" name="label_21">
-             <property name="text">
-              <string>RON</string>
              </property>
             </widget>
            </item>
@@ -431,27 +420,10 @@ font-weight: bold;</string>
              </property>
             </widget>
            </item>
-           <item row="4" column="1" colspan="2">
-            <widget class="QDoubleSpinBox" name="pxSizeSpin">
-             <property name="suffix">
-              <string> µm</string>
-             </property>
-             <property name="value">
-              <double>15.000000000000000</double>
-             </property>
-            </widget>
-           </item>
            <item row="4" column="0">
             <widget class="QLabel" name="label_22">
              <property name="text">
               <string>Pixel size</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="2">
-            <widget class="QDoubleSpinBox" name="ronSpin">
-             <property name="suffix">
-              <string> e⁻ RMS</string>
              </property>
             </widget>
            </item>
@@ -462,24 +434,7 @@ font-weight: bold;</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="1" colspan="2">
-            <widget class="QDoubleSpinBox" name="gainSpin">
-             <property name="suffix">
-              <string> e⁻/px</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1" colspan="2">
-            <widget class="QDoubleSpinBox" name="fNSpin">
-             <property name="decimals">
-              <number>3</number>
-             </property>
-             <property name="value">
-              <double>17.757000000000001</double>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1">
+           <item row="6" column="0" colspan="3">
             <spacer name="verticalSpacer_2">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -494,6 +449,87 @@ font-weight: bold;</string>
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_21">
+             <property name="text">
+              <string>RON</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2">
+            <widget class="QDoubleSpinBox" name="fNSpin">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="decimals">
+              <number>3</number>
+             </property>
+             <property name="value">
+              <double>17.757000000000001</double>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2">
+            <widget class="QDoubleSpinBox" name="pxSizeSpin">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="suffix">
+              <string> µm</string>
+             </property>
+             <property name="value">
+              <double>15.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2">
+            <widget class="QDoubleSpinBox" name="qeSpin">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="suffix">
+              <string> %</string>
+             </property>
+             <property name="value">
+              <double>95.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QDoubleSpinBox" name="ronSpin">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="suffix">
+              <string> e⁻ RMS</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QDoubleSpinBox" name="gainSpin">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="suffix">
+              <string> e⁻/px</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -519,6 +555,12 @@ font-weight: bold;</string>
           <layout class="QGridLayout" name="gridLayout_5">
            <item row="4" column="1" colspan="2">
             <widget class="QCheckBox" name="photonNoiseCheck">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Photon noise</string>
              </property>
@@ -526,6 +568,12 @@ font-weight: bold;</string>
            </item>
            <item row="2" column="1" colspan="2">
             <widget class="QComboBox" name="spectYAxisCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <item>
               <property name="text">
                <string>Spectrial irradiance</string>
@@ -562,6 +610,12 @@ font-weight: bold;</string>
            </item>
            <item row="0" column="1" colspan="2">
             <widget class="QComboBox" name="spectTypeCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <item>
               <property name="text">
                <string>IS output</string>
@@ -588,6 +642,12 @@ font-weight: bold;</string>
            </item>
            <item row="4" column="0">
             <widget class="QCheckBox" name="logScaleCheck">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Log scale</string>
              </property>
@@ -595,6 +655,12 @@ font-weight: bold;</string>
            </item>
            <item row="1" column="1" colspan="2">
             <widget class="QComboBox" name="spectXAxisCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <item>
               <property name="text">
                <string>Wavelength</string>
@@ -720,7 +786,14 @@ font-weight: bold;</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_9">
            <item row="1" column="1">
-            <widget class="QComboBox" name="passBandCombo"/>
+            <widget class="QComboBox" name="passBandCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
            </item>
            <item row="1" column="0">
             <widget class="QRadioButton" name="tExpPassBandRadio">
