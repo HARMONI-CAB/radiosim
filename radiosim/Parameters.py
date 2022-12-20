@@ -92,28 +92,40 @@ class Parameters():
 
         return self.spect_types[type][1][spec]
     
-    def load_lamp(self, name, path, rating = None):
+    def load_lamp(self, name, path, rating = None, desc = None):
         full_path = self.resolve_data_file(path)
         spectrum = InterpolatedSpectrum(full_path)
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
-        self.lamps[name] = spectrum
+        self.lamps[name] = (spectrum, desc)
 
-    def load_black_body_lamp(self, name, T, rating):
+    def load_black_body_lamp(self, name, T, rating = None, desc = None):
         spectrum = BlackBodySpectrum(T)
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
         
-        self.lamps[name] = spectrum
+        self.lamps[name] = (spectrum, desc)
 
     def get_lamp(self, name):
         if name not in self.lamps:
             return None
 
-        return self.lamps[name]
+        return self.lamps[name][0]
     
+    def get_lamp_desc(self, name):
+        if name not in self.lamps:
+            return None
+
+        return self.lamps[name][1]
+
+    def get_lamp_params(self, name):
+        if name not in self.lamps:
+            return None
+
+        return self.lamps[name]
+
     def get_lamp_names(self):
         return list(self.lamps.keys())
     
@@ -230,8 +242,9 @@ class Parameters():
 
     def load_defaults(self):
         # Load lamps
-        self.load_lamp("150W",        "lamp-spectrum.csv", 2 * 150)
-        self.load_lamp("NORMAL",      "lamp-spectrum-2.csv")
+        self.load_lamp("150W",   "lamp-spectrum.csv", 2 * 150, "2x150 W continuum lamp with adjustable power")
+        self.load_lamp("NORMAL", "lamp-spectrum-2.csv", desc = "Continuum lamp with fixed radiance")
+        self.load_black_body_lamp("PLANK",  5700, desc = "Theoretical black body emission at 5700 K")
 
         # Load passband filters for the different gratings
         self.load_filter("H (high)",  "t-h-high.csv")

@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox
 from PyQt6 import uic
 from radiosim import SimulationConfig, DetectorConfig
 from .PlotWidget import PlotWidget
+from .LampControlWidget import LampControlWidget
 
 import pathlib
 import traceback
@@ -23,19 +24,16 @@ class SimUiWindow(QtWidgets.QMainWindow):
         uic.loadUi(fr"{dir}/simui.ui", self)
         self.setWindowTitle("QRadioSim - The HARMONI's radiometric simulator")
         self.refresh_ui_state()
-        self.connect_all()
+        
         self.plotWidget = PlotWidget()
         self.plotStack.insertWidget(1, self.plotWidget)
         self.curr_x_units = None
         self.curr_y_units = None
-
+        self.lamp_widgets = {}
+        
+        self.connect_all()
+        
     def connect_all(self):
-        self.lamp1TypeCombo.activated.connect(self.on_state_widget_changed)
-        self.lamp1AttenSlider.valueChanged.connect(self.on_atten1_changed)
-
-        self.lamp2TypeCombo.activated.connect(self.on_state_widget_changed)
-        self.lamp2AttenSlider.valueChanged.connect(self.on_atten2_changed)
-
         self.spectPlotButton.clicked.connect(self.plotSpectrum)
         self.spectOverlayButton.clicked.connect(self.overlaySpectrum)
         self.spectClearAllbuton.clicked.connect(self.on_plot_clear)
@@ -96,19 +94,21 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def refresh_params(self):
         gratings = self.params.get_grating_names()
 
-        # Add lamps
-        self.lamp1TypeCombo.clear()
-        self.lamp2TypeCombo.clear()
-
-        self.lamp1TypeCombo.addItem('Off', userData = None)
-        self.lamp2TypeCombo.addItem('Off', userData = None)
-
+        # Remove exiting lamps
         lamps = self.params.get_lamp_names()
 
-        for lamp in lamps:
-            self.lamp1TypeCombo.addItem(lamp, userData = self.params.get_lamp(lamp))
-            self.lamp2TypeCombo.addItem(lamp, userData = self.params.get_lamp(lamp))                
+        for l in self.lamp_widgets.keys():
+            widget = self.lamp_widgets[l]
+            self.lampLayout.removeWidget(widget)
+            widget.deleteLater()
 
+        # Add lamps
+        for lamp in lamps:
+            params = self.params.get_lamp_params(lamp)
+            widget = LampControlWidget(lamp, params)
+            self.lampLayout.insertWidget(0, widget)
+            self.lamp_widgets[lamp] = widget
+        
         # Add gratings
         self.gratingCombo.clear()
         self.gratingCombo.addItems(gratings)
@@ -170,37 +170,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.params = params
         self.refresh_params()
 
-
-    def refresh_lamp_control_ui_state(self):
-        # Lamp control
-        lamp1 = self.lamp1TypeCombo.currentData()
-        lamp2 = self.lamp2TypeCombo.currentData()
-
-        lamp1Adjustable = lamp1 is not None and lamp1.is_adjustable()
-        lamp2Adjustable = lamp2 is not None and lamp2.is_adjustable()
-
-        self.lamp1PowerSpin.setEnabled(lamp1Adjustable)
-        self.lamp2PowerSpin.setEnabled(lamp2Adjustable)
-
-        self.lamp1AttenLabel.setEnabled(lamp1Adjustable)
-        self.lamp2AttenLabel.setEnabled(lamp2Adjustable)
-
-        if lamp1Adjustable:
-            self.lamp1PowerSpin.setValue(lamp1.get_power())
-
-        if lamp2Adjustable:
-            self.lamp2PowerSpin.setValue(lamp2.get_power())
-
-        self.lamp1AttenLabel.setText(fr'{self.lamp1AttenSlider.value()} %')
-        self.lamp2AttenLabel.setText(fr'{self.lamp2AttenSlider.value()} %')
-
-        self.lamp1AttenSlider.setEnabled(lamp1 is not None)
-        self.lamp2AttenSlider.setEnabled(lamp2 is not None)
-
-        anyLamp = lamp1 is not None or lamp2 is not None
-        self.spectrumControlBox.setEnabled(anyLamp)
-        self.plotControlBox.setEnabled(anyLamp)
-
     def refresh_exp_time_ui_state(self):
         passBandCenterEnabled = self.tExpPassBandRadio.isChecked()
         self.passBandCombo.setEnabled(passBandCenterEnabled)
@@ -215,36 +184,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
                     self.tExpWlSpin.setValue(center * 1e6)
         
     def refresh_ui_state(self):
-        self.refresh_lamp_control_ui_state()
         self.refresh_exp_time_ui_state()
 
-    def set_lamp_1(self, lamp_name):
-        if lamp_name is None:
-            lamp = None
-        else:
-            lamp = self.params.get_lamp(lamp_name)
-            if lamp is None:
-                raise Exception(fr'Lamp {lamp_name} does not exist. Is your configuration file up to date with the current software version?')
-            
-        index = self.lamp1TypeCombo.findData(lamp)
-        if index == -1:
-            raise RuntimeError(fr'Failed to set lamp 1: UI sync error')
-        
-        self.lamp1TypeCombo.setCurrentIndex(index)
-    
-    def set_lamp_2(self, lamp_name):
-        if lamp_name is None:
-            lamp = None
-        else:
-            lamp = self.params.get_lamp(lamp_name)
-            if lamp is None:
-                raise Exception(fr'Lamp {lamp_name} does not exist. Is your configuration file up to date with the current software version?')
-            
-        index = self.lamp2TypeCombo.findData(lamp)
-        if index == -1:
-            raise RuntimeError(fr'Failed to set lamp 2: UI sync error')
-        
-        self.lamp2TypeCombo.setCurrentIndex(index)
     
     def set_grating(self, grating_name):
         if grating_name is None:
@@ -356,8 +297,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
     def set_config(self, config):
         try:
-            self.set_lamp_1(config.lamp1.config)
-            self.set_lamp_2(config.lamp2.config)
+            # TODO: Set lamp config
+
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
             self.set_scale(config.scale)
@@ -406,16 +347,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config = SimulationConfig()
         
         # Read lamp config
-        lamp1 = self.lamp1TypeCombo.currentData()
-        lamp2 = self.lamp2TypeCombo.currentData()
-
-        config.lamp1.config      = None if lamp1 is None else self.lamp1TypeCombo.currentText()
-        config.lamp1.power       = None if lamp1 is None else self.lamp1PowerSpin.value()
-        config.lamp1.attenuation = None if lamp1 is None else self.lamp1AttenSlider.value()
-
-        config.lamp2.config      = None if lamp2 is None else self.lamp1TypeCombo.currentText()
-        config.lamp2.power       = None if lamp2 is None else self.lamp1PowerSpin.value()
-        config.lamp2.attenuation = None if lamp2 is None else self.lamp1AttenSlider.value()
+        # TODO
 
         config.grating       = self.gratingCombo.currentText()
         config.aomode        = self.aoModeCombo.currentText()
@@ -444,12 +376,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
     ################################# Slots ####################################
     def on_state_widget_changed(self):
         self.refresh_ui_state()
-
-    def on_atten1_changed(self, value):
-        self.refresh_lamp_control_ui_state()
-
-    def on_atten2_changed(self, value):
-        self.refresh_lamp_control_ui_state()
 
     def on_spect_type_changed(self):
         self.refresh_spect_list()

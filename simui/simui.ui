@@ -39,304 +39,7 @@ font-weight: bold;</string>
       </property>
      </widget>
     </item>
-    <item row="1" column="0" colspan="2">
-     <widget class="QGroupBox" name="lamp1Atten">
-      <property name="title">
-       <string>Lamp 1 configuration</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_2">
-       <item row="3" column="0" colspan="2">
-        <widget class="QSlider" name="lamp1AttenSlider">
-         <property name="maximum">
-          <number>100</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="tickPosition">
-          <enum>QSlider::TicksBelow</enum>
-         </property>
-         <property name="tickInterval">
-          <number>5</number>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLabel" name="lamp1AttenLabel">
-         <property name="text">
-          <string>0%</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Attenuation</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QComboBox" name="lamp1TypeCombo">
-         <item>
-          <property name="text">
-           <string>Off</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Continuum</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Lines (He)</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Type</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_14">
-         <property name="text">
-          <string>Power</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QDoubleSpinBox" name="lamp1PowerSpin">
-         <property name="suffix">
-          <string> W</string>
-         </property>
-         <property name="maximum">
-          <double>2000.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item row="2" column="0" colspan="2">
-     <widget class="QGroupBox" name="lamp2Atten">
-      <property name="title">
-       <string>Lamp 2 configuration</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_3">
-       <item row="3" column="0" colspan="2">
-        <widget class="QSlider" name="lamp2AttenSlider">
-         <property name="maximum">
-          <number>100</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="tickPosition">
-          <enum>QSlider::TicksBelow</enum>
-         </property>
-         <property name="tickInterval">
-          <number>5</number>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_10">
-         <property name="text">
-          <string>Attenuation</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLabel" name="lamp2AttenLabel">
-         <property name="text">
-          <string>0%</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QComboBox" name="lamp2TypeCombo">
-         <item>
-          <property name="text">
-           <string>Off</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Continuum</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Lines (He)</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_9">
-         <property name="text">
-          <string>Type</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_15">
-         <property name="text">
-          <string>Power</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QDoubleSpinBox" name="lamp2PowerSpin">
-         <property name="suffix">
-          <string> W</string>
-         </property>
-         <property name="maximum">
-          <double>2000.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item row="3" column="0" colspan="2">
-     <widget class="QGroupBox" name="groupBox">
-      <property name="title">
-       <string>Instrument configuration</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Grating</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2" colspan="2">
-        <widget class="QComboBox" name="scaleCombo">
-         <item>
-          <property name="text">
-           <string>4x4</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>10x10</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="0" column="2" colspan="2">
-        <widget class="QComboBox" name="gratingCombo">
-         <item>
-          <property name="text">
-           <string>VIS</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>LR1</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>LR2</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="2">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>AO mode</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2" colspan="2">
-        <widget class="QComboBox" name="aoModeCombo">
-         <item>
-          <property name="text">
-           <string>NOAO</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>SCAO</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>LTAO</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="2" column="0" colspan="2">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Scale</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="2">
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>Exposition</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0" colspan="2">
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Saturation</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="2" colspan="2">
-        <widget class="QSpinBox" name="satLevelSpin">
-         <property name="suffix">
-          <string> adu</string>
-         </property>
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>16777216</number>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0" colspan="2">
-        <widget class="QLabel" name="label_16">
-         <property name="text">
-          <string>Temperature</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="2" colspan="2">
-        <widget class="QDoubleSpinBox" name="tempSpin">
-         <property name="suffix">
-          <string> ºC</string>
-         </property>
-         <property name="value">
-          <double>2.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="2" colspan="2">
-        <widget class="QDoubleSpinBox" name="expTimeSpin">
-         <property name="suffix">
-          <string> s</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item row="0" column="2" rowspan="5">
+    <item row="0" column="2" rowspan="4">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
        <number>0</number>
@@ -903,7 +606,140 @@ font-weight: bold;</string>
       </widget>
      </widget>
     </item>
-    <item row="4" column="0" colspan="2">
+    <item row="2" column="0" colspan="2">
+     <widget class="QGroupBox" name="groupBox">
+      <property name="title">
+       <string>Instrument configuration</string>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Grating</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2" colspan="2">
+        <widget class="QComboBox" name="scaleCombo">
+         <item>
+          <property name="text">
+           <string>4x4</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>10x10</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="0" column="2" colspan="2">
+        <widget class="QComboBox" name="gratingCombo">
+         <item>
+          <property name="text">
+           <string>VIS</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>LR1...</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>LR2</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>AO mode</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2" colspan="2">
+        <widget class="QComboBox" name="aoModeCombo">
+         <item>
+          <property name="text">
+           <string>NOAO</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>SCAO</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>LTAO</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="2">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Scale</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Exposition</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0" colspan="2">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Saturation</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2" colspan="2">
+        <widget class="QSpinBox" name="satLevelSpin">
+         <property name="suffix">
+          <string> adu</string>
+         </property>
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>16777216</number>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0" colspan="2">
+        <widget class="QLabel" name="label_16">
+         <property name="text">
+          <string>Temperature</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="2" colspan="2">
+        <widget class="QDoubleSpinBox" name="tempSpin">
+         <property name="suffix">
+          <string> ºC</string>
+         </property>
+         <property name="value">
+          <double>2.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2" colspan="2">
+        <widget class="QDoubleSpinBox" name="expTimeSpin">
+         <property name="suffix">
+          <string> s</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="3" column="0" colspan="2">
      <spacer name="verticalSpacer_6">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -916,6 +752,27 @@ font-weight: bold;</string>
       </property>
      </spacer>
     </item>
+    <item row="1" column="0" colspan="2">
+     <widget class="QWidget" name="lampSetWidget" native="true">
+      <layout class="QVBoxLayout" name="lampLayout">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -924,7 +781,7 @@ font-weight: bold;</string>
      <x>0</x>
      <y>0</y>
      <width>898</width>
-     <height>25</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
