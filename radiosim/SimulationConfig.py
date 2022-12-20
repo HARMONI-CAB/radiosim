@@ -93,8 +93,8 @@ class SimulationConfig(SerializableConfig):
     def __init__(self):
         super().__init__()
         
-        self.lamp1 = LampConfig()
-        self.lamp2 = LampConfig()
+        self.lamps         = {}
+        self.lamp_configs  = {}
 
         self.detector      = DetectorConfig()
 
@@ -119,6 +119,9 @@ class SimulationConfig(SerializableConfig):
 
         self.texp_iters    = 1000
 
+    def set_lamp_config(self, name, lamp):
+        self.lamps[name] = lamp
+    
     def save(self):
         self.save_param('grating')
         self.save_param('aomode')
@@ -139,25 +142,21 @@ class SimulationConfig(SerializableConfig):
 
         self.save_param('texp_iters')
 
-        self.lamp1.save()
-        self.lamp2.save()
+        for lamp in self.lamps.keys():
+            self.lamps[lamp].save()
+            self.lamp_configs[lamp] = self.lamps[lamp].as_dict()
 
-        self.lamp1_config = self.lamp1.as_dict()
-        self.lamp2_config = self.lamp2.as_dict()
-        
-        self.save_param('lamp1_config')
-        self.save_param('lamp2_config')
+        self.save_param('lamp_configs')
 
         self.detector.save()
         self.detector_config = self.detector.as_dict()
         
         self.save_param('detector_config')
-        self.save_param('detector_config')
         
     def load(self, dict):
         self.load_all(dict)
-        
-        self.lamp1.load(self.lamp1config)
-        self.lamp2.load(self.lamp2config)
+
+        for lamp in self.lamp_configs.keys():
+            self.lamps[lamp].load(self.lamp_configs[lamp])
 
         self.detector.load(self.detector_config)

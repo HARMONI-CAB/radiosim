@@ -41,6 +41,9 @@ class LampControlWidget(QtWidgets.QWidget):
         self.lampOnOffButton.toggled.connect(self.on_ui_changed)
         self.lampPowerSpin.valueChanged.connect(self.on_ui_changed)
         
+    def is_on(self):
+        return self.lampOnOffButton.isChecked()
+    
     def refresh_ui(self):
         isOn = self.lampOnOffButton.isChecked()
         if not isOn:

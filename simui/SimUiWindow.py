@@ -23,7 +23,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
         dir = pathlib.Path(__file__).parent.resolve()
         uic.loadUi(fr"{dir}/simui.ui", self)
         self.setWindowTitle("QRadioSim - The HARMONI's radiometric simulator")
-        self.refresh_ui_state()
         
         self.plotWidget = PlotWidget()
         self.plotStack.insertWidget(1, self.plotWidget)
@@ -31,6 +30,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.curr_y_units = None
         self.lamp_widgets = {}
         
+        self.refresh_ui_state()
         self.connect_all()
         
     def connect_all(self):
@@ -107,6 +107,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
             params = self.params.get_lamp_params(lamp)
             widget = LampControlWidget(lamp, params)
             self.lampLayout.insertWidget(0, widget)
+            widget.changed.connect(self.on_lamp_changed)
             self.lamp_widgets[lamp] = widget
         
         # Add gratings
@@ -184,8 +185,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
                     self.tExpWlSpin.setValue(center * 1e6)
         
     def refresh_ui_state(self):
+        self.refresh_spectrum_ui()
         self.refresh_exp_time_ui_state()
-
     
     def set_grating(self, grating_name):
         if grating_name is None:
@@ -295,10 +296,20 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         return config
 
+    def any_lamp_is_on(self):
+        for lamp in self.lamp_widgets.keys():
+            if self.lamp_widgets[lamp].is_on():
+                return True
+        return False
+
+    def refresh_spectrum_ui(self):
+        self.spectrumControlBox.setEnabled(self.any_lamp_is_on())
+    
     def set_config(self, config):
         try:
-            # TODO: Set lamp config
-
+            for lamp in config.lamps.keys():
+                self.lamp_widgets[lamp].set_config(config.lamps[lamp])
+            
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
             self.set_scale(config.scale)
@@ -347,8 +358,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config = SimulationConfig()
         
         # Read lamp config
-        # TODO
-
+        for lamp in self.lamp_widgets.keys():
+            config.set_lamp_config(self.lamp_widgets[lamp].get_config())
+        
         config.grating       = self.gratingCombo.currentText()
         config.aomode        = self.aoModeCombo.currentText()
         config.scale         = self.scaleCombo.currentData()
@@ -380,6 +392,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def on_spect_type_changed(self):
         self.refresh_spect_list()
     
+    def on_lamp_changed(self):
+        self.refresh_spectrum_ui()
+
     def on_plot_clear(self):
         self.clear_plot()
     
