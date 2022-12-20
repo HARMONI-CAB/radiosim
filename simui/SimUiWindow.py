@@ -1,12 +1,12 @@
 from PyQt6 import QtCore
 from PyQt6.QtCore import pyqtSignal
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox
+from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog
 from PyQt6 import uic
 from radiosim import SimulationConfig, DetectorConfig
 from .PlotWidget import PlotWidget
 from .LampControlWidget import LampControlWidget
-
+import os.path
 import pathlib
 import traceback
 
@@ -29,10 +29,25 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.curr_x_units = None
         self.curr_y_units = None
         self.lamp_widgets = {}
-        
+        self.changes = False
+        self.filename = None
         self.refresh_ui_state()
         self.connect_all()
         
+    def update_title(self):
+        filename = self.filename
+        if filename is None:
+            filename = 'No name'
+        else:
+            filename = os.path.basename(filename)
+
+        title = 'QRadioSim - ' + filename
+        
+        if self.changes:
+            title += '*'
+        
+        self.setWindowTitle(title)
+
     def connect_all(self):
         self.spectPlotButton.clicked.connect(self.plotSpectrum)
         self.spectOverlayButton.clicked.connect(self.overlaySpectrum)
@@ -44,6 +59,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
         
         self.logScaleCheck.toggled.connect(self.on_log_scale_changed)
+
+        self.action_Open.triggered.connect(self.on_open)
+        self.action_Save.triggered.connect(self.on_save)
+        self.action_Save_as.triggered.connect(self.on_save_as)
+        self.action_Quit.triggered.connect(self.on_quit)
 
     def clear_plot(self):
         self.plotWidget.clear()
@@ -185,6 +205,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
                     self.tExpWlSpin.setValue(center * 1e6)
         
     def refresh_ui_state(self):
+        self.update_title()
         self.refresh_spectrum_ui()
         self.refresh_exp_time_ui_state()
     
@@ -385,19 +406,127 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         return config
 
+    def do_save_as(self):
+        name, filter = QFileDialog.getSaveFileName(
+            self, 
+            'Save current configuration',
+            directory = 'my_config.yaml' if self.filename is None else self.filename,
+            filter = 'QRadioSim config files (*.yml, *.yaml);;All files (*)')
+        if len(name) == 0:
+            return False
+
+        try:
+            config = self.get_config()
+            config.save_to_file(name)
+            self.filename = os.path.basename(name)
+            self.changes = False
+        except Exception as e:
+            QMessageBox.critical(self, 'Cannot save file', 'Failed to save file: ' + str(e))
+            return False
+    
+        return True
+
+    def do_save(self):
+        if self.filename is None:
+            return self.do_save_as()
+        
+        try:
+            config = self.get_config()
+            config.save_to_file(self.filename)
+            self.changes = False
+            self.update_title()
+        except Exception as e:
+            QMessageBox.critical(self, 'Cannot save file', 'Failed to save file: ' + str(e))
+            return False
+    
+        return True
+
+    def about_to_close(self):
+        if self.changes:
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle('Save changes')
+            dlg.setText('There are unsaved changes in the current configuration. Do you want to save them to a file?')
+            dlg.setStandardButtons(
+                QMessageBox.StandardButton.Yes | 
+                QMessageBox.StandardButton.No | 
+                QMessageBox.StandardButton.Cancel)
+            dlg.setIcon(QMessageBox.Icon.Question)
+            button = dlg.exec()
+
+            if button == QDialogButtonBox.StandardButton.No.value:
+                return True
+            if button == QDialogButtonBox.StandardButton.Cancel.value:
+                return False
+
+            return self.do_save_as()
+
+        return True
+
+    def do_open(self):
+        name, filter = QFileDialog.getOpenFileName(
+            self,
+            'Load configuration',
+            filter = 'QRadioSim config files (*.yml, *.yaml);;All files (*)')
+        
+        if len(name) == 0:
+            return False
+
+        try:
+            config = SimulationConfig()
+            config.load_from_file(name)
+            self.set_config(config)
+            self.filename = os.path.basename(name)
+            self.changes = False
+            self.update_title()
+        except Exception as e:
+            QMessageBox.critical(self, 'Cannot load config file', 'Failed to load config file: ' + str(e) + fr'<p /><pre>{traceback.format_exc()}</pre>')
+            return False
+            
+    def closeEvent(self, event):
+        # do stuff
+        if self.about_to_close():
+            event.accept() # let the window close
+        else:
+            event.ignore()
+
     ################################# Slots ####################################
+    def on_open(self):
+        if not self.about_to_close():
+            return
+
+        self.do_open()
+
+    def on_save(self):
+        self.do_save()
+
+    def on_save_as(self):
+        self.do_save_as()
+
+    def on_quit(self):
+        if not self.about_to_close():
+            return
+        QtWidgets.QApplication.quit()
+
     def on_state_widget_changed(self):
+        self.changes = True
+        self.update_title()
         self.refresh_ui_state()
 
     def on_spect_type_changed(self):
+        self.changes = True
+        self.update_title()
         self.refresh_spect_list()
     
     def on_lamp_changed(self):
+        self.changes = True
+        self.update_title()
         self.refresh_spectrum_ui()
 
     def on_plot_clear(self):
         self.clear_plot()
     
     def on_log_scale_changed(self):
+        self.changes = True
+        self.update_title()
         self.plotWidget.set_log_scale(self.logScaleCheck.isChecked())
     

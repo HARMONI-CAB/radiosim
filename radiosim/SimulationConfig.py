@@ -119,6 +119,8 @@ class SimulationConfig(SerializableConfig):
 
         self.texp_iters    = 1000
 
+        self.detector_config = {}
+        
     def set_lamp_config(self, name, lamp):
         self.lamps[name] = lamp
     
@@ -156,7 +158,11 @@ class SimulationConfig(SerializableConfig):
     def load(self, dict):
         self.load_all(dict)
 
+        # Fix certain datatypes
+        self.scale = tuple(self.scale)
+        
         for lamp in self.lamp_configs.keys():
+            self.lamps[lamp] = SimulationConfig()
             self.lamps[lamp].load(self.lamp_configs[lamp])
 
         self.detector.load(self.detector_config)
