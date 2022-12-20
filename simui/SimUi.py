@@ -117,6 +117,7 @@ class SimUI(QObject):
         tdesc   = self.params.get_spectrum_type_desc(type)
         desc, _ = self.params.get_spectrum_desc_for_type(type, y_axis)
 
+        self.config.save_to_file('/dev/stdout')
         self.window.spectrum_plot(
             x,
             y,
