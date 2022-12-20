@@ -12,6 +12,7 @@ from .AttenuatedSpectrum   import AttenuatedSpectrum
 from .InterpolatedSpectrum import InterpolatedSpectrum
 from .SpectrumPainter      import SpectrumPainter
 from .RadianceSpectrum     import RadianceSpectrum
+from .OverlappedSpectrum   import OverlappedSpectrum
 
 from .DetectorSimulator    import DetectorSimulator
 
@@ -19,3 +20,4 @@ from .Parameters           import Parameters
 from .SimulationConfig     import SimulationConfig
 from .SimulationConfig     import DetectorConfig
 from .SimulationConfig     import LampConfig
+

@@ -14,6 +14,12 @@ class AttenuatedSpectrum(RadianceSpectrum.RadianceSpectrum):
         self.power          = sourceSpectrum.power
         self.power_factor   = sourceSpectrum.power_factor
         self.max_wl         = -1
+        self.attenuation    = 0. # From 0 to 1
+
+    def set_attenuation(self, attenuation):
+        if attenuation < 0 or attenuation > 1:
+            raise Exception('Invalid attenuation (must be between 0 and 1)')
+        self.attenuation = attenuation
 
     def get_source_spectrum(self):
             return self.sourceSpectrum
@@ -28,10 +34,12 @@ class AttenuatedSpectrum(RadianceSpectrum.RadianceSpectrum):
     
     # TODO: take emissivity of each intermediate filter into account
     def get_I(self, wl):
-        return self.filters.apply(wl, self.sourceSpectrum.get_I(wl))
+        alpha = 1. - self.attenuation
+        return self.filters.apply(wl, alpha * self.sourceSpectrum.get_I(wl))
 
     def get_I_matrix(self, wl):
-        return self.filters.apply(wl, self.sourceSpectrum.get_I_matrix(wl))
+        alpha = 1. - self.attenuation
+        return self.filters.apply(wl, alpha * self.sourceSpectrum.get_I_matrix(wl))
 
     def get_max_wl(self):
         if self.max_wl < 0:

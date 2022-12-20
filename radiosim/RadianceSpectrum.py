@@ -69,8 +69,7 @@ class RadianceSpectrum(ABC):
         if len(wl_matrix.shape) != 1:
             raise Exception("High-order tensors not yet supported")
         
-        return np.apply_along_axis(self.get_I, 1, wl_matrix)
-
+        return np.apply_along_axis(self.get_I, 0, wl_matrix)
 
     def get_I_nu(self, nu):
         return self.get_I(SPEED_OF_LIGHT / nu) * (SPEED_OF_LIGHT / (nu * nu))

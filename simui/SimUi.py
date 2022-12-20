@@ -9,7 +9,7 @@ from radiosim import SPEED_OF_LIGHT
 from radiosim.Parameters import \
     HARMONI_FINEST_SPAXEL_SIZE, HARMONI_PX_PER_SP_ALONG, \
     HARMONI_PX_PER_SP_ACROSS, HARMONI_PX_AREA
-import radiosim.AttenuatedSpectrum
+import radiosim.AttenuatedSpectrum, radiosim.OverlappedSpectrum
 
 class SimUI(QObject):
     def __init__(self, *args, **kwargs):
@@ -42,13 +42,22 @@ class SimUI(QObject):
             ao = self.config.aomode)
 
         # Initialize spectrum
-        spectrum = radiosim.AttenuatedSpectrum(self.params.get_lamp(self.config.lamp1.config))
+        overlapped = radiosim.OverlappedSpectrum()
+
+        # Spectrum coming from all lamps
+        for lamp in self.config.lamps.keys():
+            config = self.config.lamps[lamp]
+            if config.is_on:
+                lamp_spectrum = radiosim.AttenuatedSpectrum(self.params.get_lamp(lamp))
+                if config.power is not None:
+                    lamp_spectrum.adjust_power(config.power)
+                lamp_spectrum.set_attenuation(config.attenuation * 1e-2)
+                overlapped.push_spectrum(lamp_spectrum)
+
+        spectrum = radiosim.AttenuatedSpectrum(overlapped)
         spectrum.push_filter(response)
         spectrum.set_fnum(self.config.detector.f)
 
-        if self.config.lamp1.power is not None:
-            spectrum.adjust_power(self.config.lamp1.power)
-        
         # Initialize detector
         dimRelX = self.config.scale[0] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ALONG)
         dimRelY = self.config.scale[1] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ACROSS)
