@@ -29,6 +29,11 @@ class SimUI(QObject):
         self.config = config
         self.window.set_config(self.config)
 
+    def simulate_texp(self):
+        self.simulate_spectrum()
+        max_wl = self.spectrum.get_max_wl()
+        print('Brightest wavelength: {0:g} µm'.format(max_wl * 1e6))
+
     def simulate_spectrum(self):
         self.config = self.window.get_config()
 
@@ -66,6 +71,8 @@ class SimUI(QObject):
         spectrum = radiosim.AttenuatedSpectrum(overlapped)
         spectrum.push_filter(response)
         spectrum.set_fnum(self.config.detector.f)
+        
+        self.spectrum = spectrum
 
         # Initialize detector
         dimRelX = self.config.scale[0] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ALONG)
@@ -101,8 +108,10 @@ class SimUI(QObject):
         # Decide what to paint
         type   = self.config.type
         y_axis = self.config.y_axis
+        tdesc  = self.params.get_spectrum_type_desc(type)
 
         if type == 'is_out':
+            label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
                 y = self.det.get_E(wl = wl, nu = nu, atten = False)
             elif y_axis == 'photon_F':
@@ -110,6 +119,7 @@ class SimUI(QObject):
             else:
                 raise Exception(fr'Invalid quantity {type}:{y_axis}')
         elif type == 'detector':
+            label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
                 y = self.det.get_E(wl = wl, nu = nu, atten = True)
             elif y_axis == 'photon_F':
@@ -131,10 +141,11 @@ class SimUI(QObject):
             if wl is None:
                 wl = SPEED_OF_LIGHT / nu
             y = stage.get_t_matrix(wl)
+            label = fr'{y_axis} at {self.config.grating}'
         else:
             raise Exception(fr'Invalid spectrum type {type}')
         
-        tdesc   = self.params.get_spectrum_type_desc(type)
+        
 
         self.window.spectrum_plot(
             x,
@@ -143,7 +154,7 @@ class SimUI(QObject):
             x_units = self.x_axis_units,
             y_desc  = self.y_axis_name,
             y_units = self.y_axis_units,
-            label   = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})')
+            label   = label)
 
     def run(self):
         self.window.show()
@@ -157,6 +168,9 @@ class SimUI(QObject):
     def on_overlay_spectrum(self):
         self.simulate_spectrum()
         self.plot_spectrum_result()
+
+    def on_plot_texp(self):
+        self.simulate_texp()
 
 def startSimUi(params):
     ui = SimUI()
