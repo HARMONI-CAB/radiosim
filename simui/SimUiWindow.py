@@ -185,7 +185,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.spectYAxisCombo.addItem(
                 text,
                 userData = spect)
-        self.spectYAxisCombo.setEnabled(True)
+
+        
+        self.spectYAxisCombo.setEnabled(self.should_enable_yaxis())
 
     def apply_params(self, params):
         self.params = params
@@ -206,9 +208,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
     def refresh_ui_state(self):
         self.update_title()
-        self.refresh_spectrum_ui()
+        self.refresh_spect_ui_state()
         self.refresh_exp_time_ui_state()
-    
+        
     def set_grating(self, grating_name):
         if grating_name is None:
             grating_name = "VIS"
@@ -323,8 +325,15 @@ class SimUiWindow(QtWidgets.QMainWindow):
                 return True
         return False
 
-    def refresh_spectrum_ui(self):
-        self.spectrumControlBox.setEnabled(self.any_lamp_is_on())
+    def should_enable_yaxis(self):
+        type = self.spectTypeCombo.currentData()
+        shouldEnable = self.any_lamp_is_on() or type == 'transmission'
+        return shouldEnable
+
+    def refresh_spect_ui_state(self):
+        shouldEnable = self.should_enable_yaxis()
+        self.spectYAxisCombo.setEnabled(shouldEnable)
+        self.plotControlBox.setEnabled(shouldEnable)
     
     def set_config(self, config):
         try:
@@ -516,11 +525,12 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.changes = True
         self.update_title()
         self.refresh_spect_list()
-    
+        self.refresh_spect_ui_state()
+
     def on_lamp_changed(self):
         self.changes = True
         self.update_title()
-        self.refresh_spectrum_ui()
+        self.refresh_spect_ui_state()
 
     def on_plot_clear(self):
         self.clear_plot()

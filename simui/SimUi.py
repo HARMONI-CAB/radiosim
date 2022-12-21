@@ -130,7 +130,7 @@ class SimUI(QObject):
             stage = self.params.get_stage(y_axis)
             if wl is None:
                 wl = SPEED_OF_LIGHT / nu
-            y = stage.get_t(wl)
+            y = stage.get_t_matrix(wl)
         else:
             raise Exception(fr'Invalid spectrum type {type}')
         
