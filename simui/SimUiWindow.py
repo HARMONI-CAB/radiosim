@@ -19,6 +19,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
     overlaySpectrum = pyqtSignal()
     plotTexp        = pyqtSignal()
     overlayTexp     = pyqtSignal()
+    stopTexp        = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,6 +38,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.lamp_widgets = {}
         self.changes = False
         self.filename = None
+        self.set_texp_simul_running(False)
         self.refresh_ui_state()
         self.connect_all()
         
@@ -64,18 +66,27 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpPlotButton.clicked.connect(self.plotTexp)
         self.tExpOverlayButton.clicked.connect(self.overlayTexp)
         self.tExpClearButton.clicked.connect(self.on_texp_clear)
+        self.tExpStopButton.clicked.connect(self.stopTexp)
 
         self.passBandCombo.activated.connect(self.on_state_widget_changed)
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
         self.tExpWlSpin.valueChanged.connect(self.on_state_widget_changed)
         self.logScaleCheck.toggled.connect(self.on_log_scale_changed)
-
         
         self.action_Open.triggered.connect(self.on_open)
         self.action_Save.triggered.connect(self.on_save)
         self.action_Save_as.triggered.connect(self.on_save_as)
         self.action_Quit.triggered.connect(self.on_quit)
 
+    def set_texp_simul_running(self, running):
+        if not running:
+            self.tExpProgressBar.setValue(0)
+        self.tExpProgressBar.setEnabled(running)
+        self.tExpStopButton.setEnabled(running)
+
+    def set_texp_simul_progress(self, progress):
+        self.tExpProgressBar.setValue(int(progress * 1e2))
+    
     def clear_plot(self):
         self.plotWidget.clear()
         self.plotStack.setCurrentIndex(0)
@@ -337,6 +348,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         return config
 
+
     def any_lamp_is_on(self):
         for lamp in self.lamp_widgets.keys():
             if self.lamp_widgets[lamp].is_on():
@@ -356,7 +368,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.tExpParamBox.setEnabled(lampsOn)
         self.tExpControlBox.setEnabled(lampsOn)
-        
+
     def set_config(self, config):
         try:
             for lamp in config.lamps.keys():
@@ -568,3 +580,4 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def on_texp_log_scale_changed(self):
         self.notify_changes()
         self.tExpWidget.set_log_scale(self.tExpLogScaleCheck.isChecked())
+

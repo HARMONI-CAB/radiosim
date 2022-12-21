@@ -15,6 +15,7 @@ from .RadianceSpectrum     import RadianceSpectrum
 from .OverlappedSpectrum   import OverlappedSpectrum
 
 from .DetectorSimulator    import DetectorSimulator
+from .DetectorSimulator    import TExpSimulator
 
 from .Parameters           import Parameters
 from .SimulationConfig     import SimulationConfig

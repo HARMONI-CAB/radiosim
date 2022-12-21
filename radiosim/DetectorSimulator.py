@@ -27,6 +27,24 @@ class TExpSimulator:
         self.cb          = count_limit + .5
         self.dt          = (self.texp_max - self.texp_min) / (N - 1)
 
+    def poissonDistribution(self, x, rate):
+        if rate > 20:
+            sqrtt = np.sqrt(rate)
+            quot  = np.sqrt(2 * np.pi) * sqrtt
+            mu    = rate
+            p = np.exp(-.5 * ((x - mu) / sqrtt) ** 2) / quot
+        else:
+            p = np.exp(-rate) * rate ** x / np.math.gamma(x + 1)
+
+        return p
+
+    def normalInt(self, a, b, sigma, mu):
+        sqrt2 = 1.4142135623730951
+        q = 1 / (sqrt2 * sigma)
+        p = .5 * (erf((b - mu) * q) - erf((a - mu) * q))
+        
+        return p
+
     def get_texp_approx(self):
         return self.texp_approx
 
@@ -47,8 +65,8 @@ class TExpSimulator:
             mus  = nes / self.det.G
             
             self.p[i] = np.dot(
-                self.det.poissonDistribution(nes, rate),
-                self.det.normalInt(self.ca, self.cb, sigma = self.sigma, mu = mus))
+                self.poissonDistribution(nes, rate),
+                self.normalInt(self.ca, self.cb, sigma = self.sigma, mu = mus))
             i += 1
 
         self.i = i
@@ -227,24 +245,6 @@ class DetectorSimulator:
         k = float(count_limit) / float(max_count)
 
         return (1 * k,  max_lambda, max_nu)
-
-    def poissonDistribution(self, x, rate):
-        if rate > 20:
-            sqrtt = np.sqrt(rate)
-            quot  = np.sqrt(2 * np.pi) * sqrtt
-            mu    = rate
-            p = np.exp(-.5 * ((x - mu) / sqrtt) ** 2) / quot
-        else:
-            p = np.exp(-rate) * rate ** x / np.math.gamma(x + 1)
-
-        return p
-
-    def normalInt(self, a, b, sigma, mu):
-        sqrt2 = 1.4142135623730951
-        q = 1 / (sqrt2 * sigma)
-        p = .5 * (erf((b - mu) * q) - erf((a - mu) * q))
-        
-        return p
     
     def getTexpDistribution(self, wl, count_limit, N = 1000):
         sim = TExpSimulator(self, wl, count_limit, N)
