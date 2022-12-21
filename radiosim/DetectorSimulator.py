@@ -1,5 +1,6 @@
 from faulthandler import disable
 import numpy as np
+import time
 
 from numpy.random import default_rng
 
@@ -9,6 +10,61 @@ from . import PLANCK_CONSTANT
 from . import WIEN_B
 from . import StageResponse
 from scipy.special import erf
+
+class TExpSimulator:
+    def __init__(self, det, wl, count_limit, N = 1000):
+        self.det         = det
+        self.Ie          = self.det.electronRatePerPixel(wl = wl)
+        self.texp_approx = self.det.getMaxTexp(wl = wl, count_limit = count_limit)[0]
+        self.texp_min    = np.max([0., self.texp_approx - self.texp_approx ** .5])
+        self.texp_max    = self.texp_approx + self.texp_approx ** .5
+        self.sigma       = self.det.ron / self.det.G
+        self.t_exp       = np.linspace(self.texp_min, self.texp_max, N)
+        self.p           = np.zeros(N)
+        self.i           = 0
+        self.N           = N
+        self.ca          = count_limit - .5
+        self.cb          = count_limit + .5
+        self.dt          = (self.texp_max - self.texp_min) / (N - 1)
+
+    def get_texp_approx(self):
+        return self.texp_approx
+
+    def progress(self):
+        return self.i / self.N
+
+    def done(self):
+        return self.i == self.N
+
+    def work(self, timeout_ms = 100):
+        start = time.perf_counter()
+        i = self.i
+        while i < self.N and (time.perf_counter() - start) * 1e3 < timeout_ms:
+            t = self.t_exp[i]
+            rate = self.Ie * t
+            max  = int(np.ceil(rate))
+            nes  = np.linspace(0, max, max + 1)
+            mus  = nes / self.det.G
+            
+            self.p[i] = np.dot(
+                self.det.poissonDistribution(nes, rate),
+                self.det.normalInt(self.ca, self.cb, sigma = self.sigma, mu = mus))
+            i += 1
+
+        self.i = i
+
+    def get_result(self):
+        nans = np.isnan(self.p)
+
+        if len(nans.shape) > 0:
+            self.p[nans] = 0
+        
+        k =  np.sum(self.p * self.dt)
+        if k == 0.:
+            k = 1
+        
+        return np.array([self.t_exp, self.p / k])
+
 
 class DetectorSimulator:
     def __init__(
@@ -191,39 +247,14 @@ class DetectorSimulator:
         return p
     
     def getTexpDistribution(self, wl, count_limit, N = 1000):
-        Ie          = self.electronRatePerPixel(wl = wl)
-        texp_approx = self.getMaxTexp(wl = wl, count_limit = count_limit)[0]
-        texp_min    = np.max([0., texp_approx - texp_approx ** .5])
-        texp_max    = texp_approx + texp_approx ** .5
-        sigma       = self.ron / self.G            
-        t_exp       = np.linspace(texp_min, texp_max, N)
-        p           = np.zeros(N)
-        i           = 0
-        ca          = count_limit - .5
-        cb          = count_limit + .5
-        dt          = (texp_max - texp_min) / (N - 1)
+        sim = TExpSimulator(self, wl, count_limit, N)
 
-        print("Integration time estimate: {0:g} s".format(texp_approx))
+        print("Integration time estimate: {0:g} s".format(sim.get_texp_approx()))
+        while not sim.done():
+            print(fr'Calculating [{sim.progress() * 1e2:.0f} % completed]', end = '\r')
+            sim.work(500)
+        print(fr'Calculating [{sim.progress() * 1e2:.0f} % completed]', end = '\n')
 
-        for t in t_exp:
-            rate = Ie * t
-            max  = int(np.ceil(rate))
-            nes  = np.linspace(0, max, max + 1)
-            mus  = nes / self.G
-            p[i] = np.dot(
-                self.poissonDistribution(nes, rate),
-                self.normalInt(ca, cb, sigma = sigma, mu = mus))
-            i += 1
-
-        nans = np.isnan(p)
-
-        if len(nans.shape) > 0:
-            p[nans] = 0
+        return sim.get_result()
         
-        k =  np.sum(p * dt)
-        if k == 0.:
-            k = 1
-        
-        return np.array([t_exp, p / k])
-
 
