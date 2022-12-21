@@ -28,7 +28,7 @@ class SimUI(QObject):
         self.window.plotTexp.connect(self.on_plot_texp)
         self.window.overlayTexp.connect(self.on_overlay_texp)
         self.window.stopTexp.connect(self.on_texp_cancelled)
-        
+
     def apply_params(self, params):
         self.params = params
         self.window.apply_params(params)
@@ -79,6 +79,9 @@ class SimUI(QObject):
                 self.window.set_texp_plot(
                     prob[0, :],
                     prob[1, :],
+                    title  = 'CCD saturation time probability distribution',
+                    xlabel = 'Time to saturation [s]',
+                    ylabel = fr'Probability density $p(t|{{c = {self.max_c}}})$',
                     label = '$\lambda = {0:1.3f}{{\mu}}m$, $c_{{max}}$ = {1} ADU, scale ${2}x{3}$'.format(
                         self.target_wl * 1e6,
                         self.max_c,

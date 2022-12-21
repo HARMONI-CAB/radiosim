@@ -33,7 +33,7 @@ class PlotWidget(QtWidgets.QWidget):
         self._static_ax.set_yscale("log" if self.log_scale else "linear")
         self.fig.canvas.draw()
         
-    def plot(self, *args, xlabel = None, ylabel = None, xlim = None, ylim = None, label = None, **kwargs):
+    def plot(self, *args, xlabel = None, ylabel = None, xlim = None, ylim = None, label = None, title = None, **kwargs):
         self._static_ax.plot(*args, label = label, *kwargs)
         if xlabel is not None:
             self._static_ax.set_xlabel(xlabel)
@@ -45,7 +45,9 @@ class PlotWidget(QtWidgets.QWidget):
             self._static_ax.set_ylim(ylim)
         if label is not None:
             self._static_ax.legend()
-        
+        if title is not None:
+            self._static_ax.set_title(title)
+
         self._static_ax.grid(True)
         self.fig.tight_layout()
         self.fig.canvas.draw()
