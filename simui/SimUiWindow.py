@@ -36,12 +36,16 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.curr_x_units = None
         self.curr_y_units = None
         self.lamp_widgets = {}
-        self.changes = False
         self.filename = None
+        self.changes = False
+
         self.set_texp_simul_running(False)
         self.refresh_ui_state()
         self.connect_all()
         
+        self.changes = False
+        self.update_title()
+
     def update_title(self):
         filename = self.filename
         if filename is None:
@@ -402,6 +406,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.logScaleCheck.setChecked(config.spect_log)
             self.photonNoiseCheck.setChecked(config.noisy)
             self.tExpLogScaleCheck.setChecked(config.texp_log)
+
+            self.changes = False
+            self.update_title()
 
         except RuntimeError as e:
             dialog = QMessageBox(
