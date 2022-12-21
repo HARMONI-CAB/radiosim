@@ -118,6 +118,23 @@ class RadianceSpectrum(ABC):
         # by (h * nu) provides the photon flux spectrum per surface and solid angle
         return I_nu / (PLANCK_CONSTANT * nu) * corr
 
+    def argmax_I(self, wl = None, nu = None):
+        if nu is None and wl is None:
+            raise Exception("Either wavelength or frequency must be provided")
+        
+        axis = wl if wl is not None else nu
+        I    = self.I(wl, nu)
+
+        return axis[np.argmax(I)]
+        
+    def argmax_photons(self, wl = None, nu = None):
+        if nu is None and wl is None:
+            raise Exception("Either wavelength or frequency must be provided")
+        
+        axis    = wl if wl is not None else nu
+        photons = self.photons(wl, nu)
+
+        return axis[np.argmax(photons)]
 
     def wien_T(self):
         return WIEN_B / self.get_max_wl()

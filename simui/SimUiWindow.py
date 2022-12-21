@@ -17,6 +17,8 @@ from radiosim.Parameters import HARMONI_PIXEL_SIZE, \
 class SimUiWindow(QtWidgets.QMainWindow):
     plotSpectrum    = pyqtSignal()
     overlaySpectrum = pyqtSignal()
+    plotTexp        = pyqtSignal()
+    overlayTexp     = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -25,7 +27,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("QRadioSim - The HARMONI's radiometric simulator")
         
         self.plotWidget = PlotWidget()
+        self.tExpWidget = PlotWidget()
+
         self.plotStack.insertWidget(1, self.plotWidget)
+        self.tExpStack.insertWidget(1, self.tExpWidget)
+
         self.curr_x_units = None
         self.curr_y_units = None
         self.lamp_widgets = {}
@@ -55,11 +61,16 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.spectTypeCombo.activated.connect(self.on_spect_type_changed)
 
+        self.tExpPlotButton.clicked.connect(self.plotTexp)
+        self.tExpOverlayButton.clicked.connect(self.overlayTexp)
+        self.tExpClearButton.clicked.connect(self.on_texp_clear)
+
         self.passBandCombo.activated.connect(self.on_state_widget_changed)
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
-        
+        self.tExpWlSpin.valueChanged.connect(self.on_state_widget_changed)
         self.logScaleCheck.toggled.connect(self.on_log_scale_changed)
 
+        
         self.action_Open.triggered.connect(self.on_open)
         self.action_Save.triggered.connect(self.on_save)
         self.action_Save_as.triggered.connect(self.on_save_as)
@@ -71,10 +82,18 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.curr_x_units = None
         self.curr_y_units = None
 
+    def clear_texp(self):
+        self.tExpWidget.clear()
+        self.tExpStack.setCurrentIndex(0)
+        
     def set_plot(self, *args, xlabel = None, ylabel = None, **kwargs):
         self.plotWidget.plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
         self.plotStack.setCurrentIndex(1)
 
+    def set_texp_plot(self, *args, xlabel = None, ylabel = None, **kwargs):
+        self.tExpWidget.plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
+        self.tExpStack.setCurrentIndex(1)
+    
     def spectrum_plot(self, *args, x_desc, x_units, y_desc, y_units, **kwargs):
         if self.curr_x_units is not None and x_units != self.curr_x_units:
             if not self.ask_yes_no(
@@ -157,9 +176,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for g in gratings:
             grating = self.params.get_grating(g)
             name    = grating[5]
-            center  = .5 * (grating[3] + grating[4])
             self.passBandCombo.addItem(
-                fr'{name} ({center * 1e6:.3f} µm)', userData = g)
+                fr'{name} ({grating[3] * 1e6:.3f} µm - {grating[4] * 1e6:.3f} µm)', userData = g)
         
 
         # Add detector defaults
@@ -331,10 +349,14 @@ class SimUiWindow(QtWidgets.QMainWindow):
         return shouldEnable
 
     def refresh_spect_ui_state(self):
+        lampsOn = self.any_lamp_is_on()
         shouldEnable = self.should_enable_yaxis()
         self.spectYAxisCombo.setEnabled(shouldEnable)
         self.plotControlBox.setEnabled(shouldEnable)
-    
+
+        self.tExpParamBox.setEnabled(lampsOn)
+        self.tExpControlBox.setEnabled(lampsOn)
+        
     def set_config(self, config):
         try:
             for lamp in config.lamps.keys():
@@ -498,6 +520,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         else:
             event.ignore()
 
+    def notify_changes(self):
+        self.changes = True
+        self.update_title()
+
     ################################# Slots ####################################
     def on_open(self):
         if not self.about_to_close():
@@ -517,26 +543,28 @@ class SimUiWindow(QtWidgets.QMainWindow):
         QtWidgets.QApplication.quit()
 
     def on_state_widget_changed(self):
-        self.changes = True
-        self.update_title()
+        self.notify_changes()
         self.refresh_ui_state()
 
     def on_spect_type_changed(self):
-        self.changes = True
-        self.update_title()
+        self.notify_changes()
         self.refresh_spect_list()
         self.refresh_spect_ui_state()
 
     def on_lamp_changed(self):
-        self.changes = True
-        self.update_title()
+        self.notify_changes()
         self.refresh_spect_ui_state()
 
     def on_plot_clear(self):
         self.clear_plot()
-    
+
     def on_log_scale_changed(self):
-        self.changes = True
-        self.update_title()
+        self.notify_changes()
         self.plotWidget.set_log_scale(self.logScaleCheck.isChecked())
     
+    def on_texp_clear(self):
+        self.clear_texp()
+
+    def on_texp_log_scale_changed(self):
+        self.notify_changes()
+        self.tExpWidget.set_log_scale(self.tExpLogScaleCheck.isChecked())

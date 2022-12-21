@@ -1,7 +1,8 @@
 import sys
 import numpy as np
 from PyQt6 import QtWidgets
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, Qt
+from PyQt6.QtWidgets import QMessageBox, QApplication
 from .SimUiWindow import SimUiWindow
 from radiosim import SimulationConfig, Parameters
 import radiosim.DetectorSimulator
@@ -20,6 +21,8 @@ class SimUI(QObject):
         self.window = SimUiWindow()
         self.window.plotSpectrum.connect(self.on_plot_spectrum)
         self.window.overlaySpectrum.connect(self.on_overlay_spectrum)
+        self.window.plotTexp.connect(self.on_plot_texp)
+        self.window.overlayTexp.connect(self.on_overlay_texp)
 
     def apply_params(self, params):
         self.params = params
@@ -29,11 +32,44 @@ class SimUI(QObject):
         self.config = config
         self.window.set_config(self.config)
 
-    def simulate_texp(self):
+    def simulate_texp_and_plot(self):
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         self.simulate_spectrum()
-        max_wl = self.spectrum.get_max_wl()
-        print('Brightest wavelength: {0:g} µm'.format(max_wl * 1e6))
 
+        if self.config.texp_use_band:
+            grating = self.params.get_grating(self.config.texp_band)
+            lambda_min = grating[3]
+            lambda_max = grating[4]
+            steps = self.config.texp_iters
+
+            wl = np.linspace(lambda_min, lambda_max, steps)
+            target_wl = self.spectrum.argmax_photons(wl = wl)
+        else:
+            target_wl = self.config.texp_wl
+        
+        max_c = self.config.saturation
+
+        prob = self.det.getTexpDistribution(target_wl, max_c)
+        try:
+            self.window.set_texp_plot(
+                prob[0, :],
+                prob[1, :],
+                label = '$\lambda = {0:1.3f}{{\mu}}m$, $c_{{max}}$ = {1} ADU, scale ${2}x{3}$'.format(
+                    target_wl * 1e6,
+                    max_c,
+                    self.config.scale[0],
+                    self.config.scale[1]
+                ))
+        except Exception as e:
+            dialog = QMessageBox(
+                parent = self, 
+                icon = QMessageBox.Icon.Warning,
+                text=fr"Failed to calculate saturation time distribution")
+            dialog.setWindowTitle("Simulation error")
+            dialog.exec()   # Stores the return value for the button pressed
+
+        QApplication.restoreOverrideCursor()
+        
     def simulate_spectrum(self):
         self.config = self.window.get_config()
 
@@ -170,7 +206,11 @@ class SimUI(QObject):
         self.plot_spectrum_result()
 
     def on_plot_texp(self):
-        self.simulate_texp()
+        self.window.clear_texp()
+        self.on_overlay_texp()
+
+    def on_overlay_texp(self):
+        self.simulate_texp_and_plot()
 
 def startSimUi(params):
     ui = SimUI()
