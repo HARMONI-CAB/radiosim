@@ -1,7 +1,68 @@
 from abc import ABC, abstractmethod
 import numpy as np
+import re
 
 class StageResponse(ABC):
+    _name  = None
+    _label = None
+    _color = '#d0d0d0'
+    _text  = '#000000'
+
+    def set_label(self, label):
+        name = re.sub('[^0-9a-zA-Z_]', '', label)
+        name = re.sub('^[^a-zA-Z_]+', '', name)
+
+        self._label = label
+        self._name  = name
+
+        self.calc_color_lazy()
+
+    def get_entrance_node_name(self):
+        return self._name
+    
+    def get_exit_node_name(self):
+        return self._name
+
+    def gamma_correction(self, range, floor = 1e-3):
+        min = np.log(floor)
+        max = np.log(1 + floor)
+        x   = np.log(range + floor)
+
+        return (x - min) / (max - min)
+
+    def calc_color_lazy(self):
+        HUMAN_UV  = 320e-9
+        HUMAN_UR  = 780e-9
+
+        GIANT_UV  = 450e-9
+        GIANT_IR  = 3500e-9
+
+        H2G_M     = (GIANT_IR - GIANT_UV) / (HUMAN_UR - HUMAN_UV)
+        
+        blue_mu   = (420e-9 - HUMAN_UV) * H2G_M + GIANT_UV
+        green_mu  = (530e-9 - HUMAN_UV) * H2G_M + GIANT_UV
+        red_mu    = (560e-9 - HUMAN_UV) * H2G_M + GIANT_UV
+
+        # blue_f    = 46e-9 * H2G_M
+        # green_f   = 76e-9 * H2G_M
+        # red_f     = 98e-9 * H2G_M
+
+        blue_f    = 30e-9 * H2G_M
+        green_f   = 30e-9 * H2G_M
+        red_f     = 30e-9 * H2G_M
+
+        blue      = int(self.gamma_correction(self.estimate_response(blue_mu, blue_f)) * 255)
+        green     = int(self.gamma_correction(self.estimate_response(green_mu, green_f)) * 255)
+        red       = int(self.gamma_correction(self.estimate_response(red_mu, red_f)) * 255)
+
+        intens    = (.2 * blue + .5 * green + .3 * red) / (255.)
+
+        self._color = fr'#{red:02x}{green:02x}{blue:02x}'
+        self._text  = '#000000' if intens > 0.4 else '#ffffff'
+
+    def get_graphviz(self):
+        return fr'{self._name} [shape=rectangle, width=2, fillcolor="{self._color}", fontcolor="{self._text}", label="{self._label}", labelangle=90 ];'
+
     @abstractmethod
     def get_t(self, wl):
         pass
@@ -40,3 +101,14 @@ class StageResponse(ABC):
             return self.get_t(wl) * spectrum
         else:
             raise Exception("Invalid combination of wavelength and spectrum parameter types ({0} and {1})".format(str(type(wl)), str(type(spectrum))))
+
+    def estimate_response(self, wl0, fwhm, num = 1000):
+        std = fwhm / 2.355
+        ww = np.linspace(wl0 - 5 * std, wl0 + 5 * std, num)
+        dw = ww[1] - ww[0]
+        spectrum = np.exp(-.5 * (ww - wl0) ** 2 / std ** 2) / (std * np.sqrt(2 * np.pi))
+        resp  = self.apply(ww, spectrum)
+
+        result = np.sum(resp) * dw
+
+        return result

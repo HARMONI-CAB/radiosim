@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+from graphviz import Digraph, Source
+import io
 from PyQt6 import QtWidgets
 from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtWidgets import QMessageBox, QApplication
@@ -28,6 +30,7 @@ class SimUI(QObject):
         self.window.plotTexp.connect(self.on_plot_texp)
         self.window.overlayTexp.connect(self.on_overlay_texp)
         self.window.stopTexp.connect(self.on_texp_cancelled)
+        self.window.changed.connect(self.on_changed)
 
     def apply_params(self, params):
         self.params = params
@@ -96,8 +99,51 @@ class SimUI(QObject):
                 dialog.setWindowTitle("Simulation error")
                 dialog.exec()   # Stores the return value for the button pressed
 
+    def get_graphviz(self):
+        graph = '''
+        digraph {
+	        // rankdir=LR;
+            rotate=90;
+	        node [style=filled, color="#505050", fillcolor=white, fontname="Helvetica", fontsize = 12];
+            edge [fontname="Helvetica", color="#505050", constaint=false];
+        '''
+
+        response   = self.params.make_response(
+            grating = self.config.grating, 
+            ao = self.config.aomode)
+        lamp_nodes = []
+        count = 0
+
+        for lamp in self.config.lamps.keys():
+            config = self.config.lamps[lamp]
+            if config.is_on:
+                lamp_node = fr'lamp_{count}'
+                count += 1
+                lamp_nodes.append(lamp_node)
+                intensity = 255 - config.attenuation * 255
+                color = fr'#{intensity:02x}{intensity:02x}00'
+                graph += f'{lamp_node} [shape=ellipse, fillcolor="{color}", label=<<b>{lamp}</b>>];\n'
+
+        graph += response.get_graphviz()
+
+        for lamp in lamp_nodes:
+            graph += f'  {lamp} -> {response.get_entrance_node_name()};\n'
+        
+        graph += '}'
+
+        return graph
+
+    def refresh_instrument_graph(self):
+        dot = Source(self.get_graphviz(), format = 'svg')
+        data = io.StringIO()
+
+        data.write( dot.pipe().decode('utf-8') )
+
+        self.window.set_instrument_svg(data.getvalue())
+        
     def simulate_spectrum(self):
         self.config = self.window.get_config()
+        self.refresh_instrument_graph()
 
         print('------------------------------------------')
         self.config.save_to_file('/dev/stdout')
@@ -110,6 +156,8 @@ class SimUI(QObject):
         response = self.params.make_response(
             grating = self.config.grating, 
             ao = self.config.aomode)
+
+        print(self.get_graphviz())
 
         # Initialize spectrum
         overlapped = radiosim.OverlappedSpectrum()
@@ -125,6 +173,7 @@ class SimUI(QObject):
                 
                 lamp_spectrum = self.params.get_lamp(lamp)
                 atten_spectrum = radiosim.AttenuatedSpectrum(lamp_spectrum)
+                
                 if config.power is not None:
                     lamp_spectrum.adjust_power(config.power)
                 atten_spectrum.set_attenuation(config.attenuation * 1e-2)
@@ -243,6 +292,10 @@ class SimUI(QObject):
     def on_texp_cancelled(self):
         self.tExpCancelled = True
     
+    def on_changed(self):
+        self.config = self.window.get_config()
+        self.refresh_instrument_graph()
+
 def startSimUi(params):
     ui = SimUI()
 

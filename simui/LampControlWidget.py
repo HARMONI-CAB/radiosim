@@ -5,7 +5,6 @@ from PyQt6.QtCore import pyqtSignal
 from radiosim import LampConfig
 
 import pathlib
-import traceback
 
 class LampControlWidget(QtWidgets.QWidget):
     changed = pyqtSignal()

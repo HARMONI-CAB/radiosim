@@ -1,8 +1,8 @@
-from PyQt6 import QtCore
-from PyQt6.QtCore import pyqtSignal
+from PyQt6 import QtCore, uic
+from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog
-from PyQt6 import uic
+from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog,  QGraphicsScene, QGraphicsView
+from PyQt6.QtSvgWidgets import QSvgWidget
 from radiosim import SimulationConfig, DetectorConfig
 from .PlotWidget import PlotWidget
 from .LampControlWidget import LampControlWidget
@@ -20,18 +20,21 @@ class SimUiWindow(QtWidgets.QMainWindow):
     plotTexp        = pyqtSignal()
     overlayTexp     = pyqtSignal()
     stopTexp        = pyqtSignal()
+    changed         = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         dir = pathlib.Path(__file__).parent.resolve()
         uic.loadUi(fr"{dir}/simui.ui", self)
         self.setWindowTitle("QRadioSim - The HARMONI's radiometric simulator")
-        
+
         self.plotWidget = PlotWidget()
         self.tExpWidget = PlotWidget()
+        self.instWidget = QSvgWidget()
 
         self.plotStack.insertWidget(1, self.plotWidget)
         self.tExpStack.insertWidget(1, self.tExpWidget)
+        self.graphStack.insertWidget(1, self.instWidget)
 
         self.curr_x_units = None
         self.curr_y_units = None
@@ -79,11 +82,22 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.lambdaSamplingSpin.valueChanged.connect(self.on_log_scale_changed)
         self.binningSpin.valueChanged.connect(self.on_log_scale_changed)
 
+        self.gratingCombo.activated.connect(self.on_state_widget_changed)
+        self.aoModeCombo.activated.connect(self.on_state_widget_changed)
+        self.scaleCombo.activated.connect(self.on_state_widget_changed)
+        
         self.action_Open.triggered.connect(self.on_open)
         self.action_Save.triggered.connect(self.on_save)
         self.action_Save_as.triggered.connect(self.on_save_as)
         self.action_Quit.triggered.connect(self.on_quit)
 
+    def set_instrument_svg(self, svg):
+        self.instWidget.load(QtCore.QByteArray(svg.encode('utf-8')))
+
+        self.instWidget.renderer().setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)
+
+        self.graphStack.setCurrentIndex(1)
+        
     def set_texp_simul_running(self, running):
         if not running:
             self.tExpProgressBar.setValue(0)
@@ -549,6 +563,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def notify_changes(self):
         self.changes = True
         self.update_title()
+        self.changed.emit()
 
     ################################# Slots ####################################
     def on_open(self):

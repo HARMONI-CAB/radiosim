@@ -132,6 +132,7 @@ class Parameters():
     def load_stage(self, name, path):
         full_path = self.resolve_data_file(path)
         response = InterpolatedResponse(full_path)
+        response.set_label(name)
         self.stages[name] = response
 
     def get_stage(self, name):
@@ -146,6 +147,7 @@ class Parameters():
     def load_filter(self, name, path):
         full_path = self.resolve_data_file(path)
         response = InterpolatedResponse(full_path)
+        response.set_label('Filter: ' + name)
         self.filters[name] = response
 
     def get_filter(self, name):
@@ -159,6 +161,7 @@ class Parameters():
     def load_equalizer(self, name, path):
         full_path = self.resolve_data_file(path)
         response = InterpolatedResponse(full_path)
+        response.set_label('Equalizer: ' + name)
         self.equalizers[name] = response
         return self.equalizers[name]
     
@@ -209,6 +212,7 @@ class Parameters():
     
     def make_response(self, grating, ao):
         response = CompoundResponse()
+        response.set_label('Instrument response')
         ao       = ao.upper()
         grating  = grating.upper()
 
