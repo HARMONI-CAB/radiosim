@@ -145,10 +145,6 @@ class SimUI(QObject):
         self.config = self.window.get_config()
         self.refresh_instrument_graph()
 
-        print('------------------------------------------')
-        self.config.save_to_file('/dev/stdout')
-        print('------------------------------------------')
-
         self.x_axis_name, self.x_axis_units = self.window.get_x_axis_selection()
         self.y_axis_name, self.y_axis_units = self.window.get_y_axis_selection()
 
@@ -156,8 +152,6 @@ class SimUI(QObject):
         response = self.params.make_response(
             grating = self.config.grating, 
             ao = self.config.aomode)
-
-        print(self.get_graphviz())
 
         # Initialize spectrum
         overlapped = radiosim.OverlappedSpectrum()

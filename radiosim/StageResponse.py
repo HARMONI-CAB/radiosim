@@ -23,12 +23,16 @@ class StageResponse(ABC):
     def get_exit_node_name(self):
         return self._name
 
-    def gamma_correction(self, range, floor = 1e-3):
-        min = np.log(floor)
-        max = np.log(1 + floor)
-        x   = np.log(range + floor)
+    def gamma_correction(self, range, gamma = .25):
+        ret = range ** gamma
 
-        return (x - min) / (max - min)
+        if ret < 0:
+            ret = 0
+        elif ret > 1:
+            ret = 1
+
+
+        return ret
 
     def calc_color_lazy(self):
         HUMAN_UV  = 320e-9
@@ -55,7 +59,7 @@ class StageResponse(ABC):
         green     = int(self.gamma_correction(self.estimate_response(green_mu, green_f)) * 255)
         red       = int(self.gamma_correction(self.estimate_response(red_mu, red_f)) * 255)
 
-        intens    = (.2 * blue + .5 * green + .3 * red) / (255.)
+        intens    = (.25 * blue + .5 * green + .25 * red) / (255.)
 
         self._color = fr'#{red:02x}{green:02x}{blue:02x}'
         self._text  = '#000000' if intens > 0.4 else '#ffffff'
