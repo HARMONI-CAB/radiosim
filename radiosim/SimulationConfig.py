@@ -98,26 +98,28 @@ class SimulationConfig(SerializableConfig):
 
         self.detector      = DetectorConfig()
 
-        self.grating       = 'VIS'
-        self.aomode        = 'NOAO'
-        self.scale         = (4, 4)
-        self.t_exp         = 10
-        self.saturation    = 20000
-        self.temperature   = 273.15
+        self.binning         = 1
+        self.lambda_sampling = 2.2
+        self.grating         = 'VIS'
+        self.aomode          = 'NOAO'
+        self.scale           = (4, 4)
+        self.t_exp           = 10
+        self.saturation      = 20000
+        self.temperature     = 273.15
 
-        self.type          = 'is_out'
-        self.x_axis        = 'wavelength'
-        self.y_axis        = 'spect_E' # Spectral irradiance
+        self.type            = 'is_out'
+        self.x_axis          = 'wavelength'
+        self.y_axis          = 'spect_E' # Spectral irradiance
 
-        self.spect_log     = False
-        self.noisy         = True
+        self.spect_log       = False
+        self.noisy           = True
 
-        self.texp_band     = self.grating
-        self.texp_use_band = True
-        self.texp_wl       = 0.8e-6
-        self.texp_log      = False
+        self.texp_band       = self.grating
+        self.texp_use_band   = True
+        self.texp_wl         = 0.8e-6
+        self.texp_log        = False
 
-        self.texp_iters    = 1000
+        self.texp_iters      = 1000
 
         self.detector_config = {}
         
@@ -125,6 +127,8 @@ class SimulationConfig(SerializableConfig):
         self.lamps[name] = lamp
     
     def save(self):
+        self.save_param("lambda_sampling")
+        self.save_param("binning")
         self.save_param('grating')
         self.save_param('aomode')
         self.save_param('scale')

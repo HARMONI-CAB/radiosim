@@ -76,7 +76,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
         self.tExpWlSpin.valueChanged.connect(self.on_state_widget_changed)
         self.logScaleCheck.toggled.connect(self.on_log_scale_changed)
-        
+        self.lambdaSamplingSpin.valueChanged.connect(self.on_log_scale_changed)
+        self.binningSpin.valueChanged.connect(self.on_log_scale_changed)
+
         self.action_Open.triggered.connect(self.on_open)
         self.action_Save.triggered.connect(self.on_save)
         self.action_Save_as.triggered.connect(self.on_save_as)
@@ -378,6 +380,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
             for lamp in config.lamps.keys():
                 self.lamp_widgets[lamp].set_config(config.lamps[lamp])
             
+            self.lambdaSamplingSpin.setValue(config.lambda_sampling)
+            self.binningSpin.setValue(config.binning)
+
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
             self.set_scale(config.scale)
@@ -432,27 +437,29 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for lamp in self.lamp_widgets.keys():
             config.set_lamp_config(lamp, self.lamp_widgets[lamp].get_config())
         
-        config.grating       = self.gratingCombo.currentText()
-        config.aomode        = self.aoModeCombo.currentText()
-        config.scale         = self.scaleCombo.currentData()
-        config.t_exp         = self.expTimeSpin.value()
-        config.saturation    = self.satLevelSpin.value()
-        config.temperature   = self.tempSpin.value() + 273.15
+        config.lambda_sampling = self.lambdaSamplingSpin.value()
+        config.binning         = self.binningSpin.value()
+        config.grating         = self.gratingCombo.currentText()
+        config.aomode          = self.aoModeCombo.currentText()
+        config.scale           = self.scaleCombo.currentData()
+        config.t_exp           = self.expTimeSpin.value()
+        config.saturation      = self.satLevelSpin.value()
+        config.temperature     = self.tempSpin.value() + 273.15
 
-        config.type          = self.spectTypeCombo.currentData()
-        config.x_axis        = 'frequency' if self.spectXAxisCombo.currentIndex() == 1 else 'wavelength'
-        config.y_axis        = self.spectYAxisCombo.currentData()
+        config.type            = self.spectTypeCombo.currentData()
+        config.x_axis          = 'frequency' if self.spectXAxisCombo.currentIndex() == 1 else 'wavelength'
+        config.y_axis          = self.spectYAxisCombo.currentData()
 
-        config.spect_log     = self.logScaleCheck.isChecked()
-        config.noisy         = self.photonNoiseCheck.isChecked()
+        config.spect_log       = self.logScaleCheck.isChecked()
+        config.noisy           = self.photonNoiseCheck.isChecked()
 
-        config.texp_band     = self.passBandCombo.currentData()
-        config.texp_use_band = self.tExpPassBandRadio.isChecked()
-        config.texp_wl       = self.tExpWlSpin.value()
-        config.texp_log      = self.tExpLogScaleCheck.isChecked()
-        config.texp_iters    = self.intStepsSpin.value()
+        config.texp_band       = self.passBandCombo.currentData()
+        config.texp_use_band   = self.tExpPassBandRadio.isChecked()
+        config.texp_wl         = self.tExpWlSpin.value()
+        config.texp_log        = self.tExpLogScaleCheck.isChecked()
+        config.texp_iters      = self.intStepsSpin.value()
 
-        config.detector      = self.get_detector_config()
+        config.detector        = self.get_detector_config()
 
         return config
 

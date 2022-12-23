@@ -146,6 +146,8 @@ class SimUI(QObject):
                 spectrum,
                 A_sp    = A_sp,
                 R       = grating[2],
+                binning = self.config.binning,
+                pxPerDeltaL = self.config.lambda_sampling,
                 poisson = self.config.noisy,
                 QE      = self.config.detector.QE,
                 G       = self.config.detector.G,

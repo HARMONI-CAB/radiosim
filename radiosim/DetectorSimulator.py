@@ -256,5 +256,5 @@ class DetectorSimulator:
         print(fr'Calculating [{sim.progress() * 1e2:.0f} % completed]', end = '\n')
 
         return sim.get_result()
-        
+
 
