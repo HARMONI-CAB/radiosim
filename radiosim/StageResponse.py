@@ -31,7 +31,6 @@ class StageResponse(ABC):
         elif ret > 1:
             ret = 1
 
-
         return ret
 
     def calc_color_lazy(self):

@@ -428,7 +428,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
             self.changes = False
             self.update_title()
-
+            self.changed.emit()
+            
         except RuntimeError as e:
             dialog = QMessageBox(
                 parent = self, 
