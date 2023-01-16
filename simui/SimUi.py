@@ -120,9 +120,10 @@ class SimUI(QObject):
                 lamp_node = fr'lamp_{count}'
                 count += 1
                 lamp_nodes.append(lamp_node)
-                intensity = 255 - config.attenuation * 255
-                color = fr'#{intensity:02x}{intensity:02x}00'
-                graph += f'{lamp_node} [shape=ellipse, fillcolor="{color}", label=<<b>{lamp}</b>>];\n'
+                intensity = int(255 - config.attenuation * 2.55)
+                color     = '#ffffff' if intensity < 127 else '#000000'
+                fillcolor = fr'#{intensity:02x}{intensity:02x}00'
+                graph += f'{lamp_node} [shape=ellipse, fillcolor="{fillcolor}", label=<<b><font color="{color}">{lamp}</font></b>>];\n'
 
         graph += response.get_graphviz()
 
