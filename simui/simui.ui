@@ -885,9 +885,17 @@ font-weight: bold;</string>
     <property name="title">
      <string>File</string>
     </property>
+    <widget class="QMenu" name="menuImport_source">
+     <property name="title">
+      <string>Import...</string>
+     </property>
+     <addaction name="action_LoadCube"/>
+    </widget>
     <addaction name="action_Open"/>
     <addaction name="action_Save"/>
     <addaction name="action_Save_as"/>
+    <addaction name="separator"/>
+    <addaction name="menuImport_source"/>
     <addaction name="separator"/>
     <addaction name="actionExport_plots"/>
     <addaction name="actionExport_data"/>
@@ -937,6 +945,14 @@ font-weight: bold;</string>
   <action name="actionAbout_RadioSim">
    <property name="text">
     <string>About RadioSim</string>
+   </property>
+  </action>
+  <action name="action_LoadCube">
+   <property name="text">
+    <string>Data cube source...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
   </action>
  </widget>

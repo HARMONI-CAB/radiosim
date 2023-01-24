@@ -35,6 +35,7 @@ from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog
 from PyQt6.QtSvgWidgets import QSvgWidget
 from radiosim import SimulationConfig, DetectorConfig
 from .PlotWidget import PlotWidget
+from .CubeChooserDialog import CubeChooserDialog
 from .LampControlWidget import LampControlWidget
 import os.path
 import pathlib
@@ -61,6 +62,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.plotWidget = PlotWidget()
         self.tExpWidget = PlotWidget()
         self.instWidget = QSvgWidget()
+        
+        self.cubeChooserDialog = CubeChooserDialog(self)
 
         self.plotStack.insertWidget(1, self.plotWidget)
         self.tExpStack.insertWidget(1, self.tExpWidget)
@@ -120,6 +123,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.action_Save.triggered.connect(self.on_save)
         self.action_Save_as.triggered.connect(self.on_save_as)
         self.action_Quit.triggered.connect(self.on_quit)
+        self.action_LoadCube.triggered.connect(self.on_load_cube)
 
     def set_instrument_svg(self, svg):
         self.instWidget.load(QtCore.QByteArray(svg.encode('utf-8')))
@@ -641,3 +645,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.notify_changes()
         self.tExpWidget.set_log_scale(self.tExpLogScaleCheck.isChecked())
 
+    def on_load_cube(self):
+        if self.cubeChooserDialog.do_open():
+            self.cubeChooserDialog.show()
+        
