@@ -457,7 +457,7 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="2">
+             <item row="0" column="1">
               <widget class="QDoubleSpinBox" name="centralWavelengthSpin">
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -489,7 +489,7 @@
                </property>
               </widget>
              </item>
-             <item row="4" column="2">
+             <item row="4" column="1">
               <widget class="QDoubleSpinBox" name="passBandWidthSpin">
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -512,13 +512,6 @@
               </widget>
              </item>
              <item row="5" column="0" colspan="2">
-              <widget class="QCheckBox" name="checkBox_3">
-               <property name="text">
-                <string>Weight by &amp;energy</string>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="2">
               <widget class="QCheckBox" name="checkBox_2">
                <property name="text">
                 <string>&amp;Slice is selection</string>

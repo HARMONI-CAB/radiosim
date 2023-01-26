@@ -68,6 +68,10 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.hdu_depth = -1
         self.have_x_units = False
         self.have_y_units = False
+
+        self.last_mov_x = None
+        self.last_mov_y = None
+
         self.previewStackedWidget.insertWidget(0, self.imageNav)
         self.detailStackedWidget.insertWidget(0, self.zoomNav)
 
@@ -111,6 +115,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
     def connect_all(self):
         self.openButton.clicked.connect(self.on_load_cube)
         self.blendCheck.toggled.connect(self.on_blend_setting_changed)
+        self.blendRadiusSpin.valueChanged.connect(self.on_blend_setting_changed)
         self.autoScaleButton.toggled.connect(self.on_toggle_autoscale)
         self.imgAutoScaleButton.toggled.connect(self.on_img_scale_changed)
         self.baseLevelSlider.valueChanged.connect(self.on_img_scale_changed)
@@ -129,7 +134,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
     def selected_spectral_slice(self):
         wl = self.centralWavelengthSpin.value()
-        ndx = (wl - self.f_0) / self.f_delta
+        ndx = (wl - self.f_0) / self.f_delta + self.f_rndx
         return int(np.clip(ndx, 0, self.hdu_depth - 1))
 
     def selected_spectral_slice_thickness(self):
@@ -153,19 +158,54 @@ class CubeChooserDialog(QtWidgets.QDialog):
         else:
             self.hdu_slice = np.mean(self.hdu_data[ndx_start:ndx_stop], axis = 0)
         
-        sane           = self.hdu_slice[~np.isnan(self.hdu_slice)]
-        self.hdu_min   = np.min(sane)
-        self.hdu_max   = np.max(sane)
+        sane = self.hdu_slice[~np.isnan(self.hdu_slice) & ~np.isinf(self.hdu_slice)]
+
+        if len(sane) > 0:
+            self.hdu_min   = np.min(sane)
+            self.hdu_max   = np.max(sane)
+        else:
+            self.hdu_min   = 0
+            self.hdu_max   = 1
 
     def refresh_hdu(self):
         self.reduce_hdu()
-
         self.imageNav.setImageData(self.hdu_slice)
         self.zoomNav.setImageData(self.hdu_slice)
+        self.refresh_img_scale_info()
 
-    def update_selection_spaxel(self, x, y):
+    def get_blend_spectrum_at(self, x, y, blend):
+        if x < 0:
+            x = 0
+        if y < 0:
+            y = 0
+        if x >= self.hdu_width:
+            x = self.hdu_width - 1
+        if y >= self.hdu_height:
+            y = self.hdu_height - 1
+        if blend is None or blend < 1:
+            return self.hdu_data[:, y, x]
+        else:
+            radius = int(np.floor(blend))
+            indexes = np.linspace(-radius + 1, radius - 1, 2 * radius - 1).astype(int)
+            xx, yy = np.meshgrid(indexes, indexes)
+
+            # Select the pixels that fall in a circle
+            valid = xx ** 2 + yy ** 2 <= blend ** 2
+            xx = xx[valid].ravel() + x
+            yy = yy[valid].ravel() + y
+            
+            # And also the ones inside the picture
+            valid = (0 <= xx) & (xx < self.hdu_width) & (0 <= y) & (yy < self.hdu_height)
+            xx = xx[valid]
+            yy = yy[valid]
+
+            selection = self.hdu_data[:, yy, xx]
+            return selection.mean(axis = 1)
+
+    def update_selection_spaxel(self, x, y, redraw = True):
         if x >= 0 and y >= 0 and x < self.hdu_width and y < self.hdu_height:
-            data = self.hdu_data[:, y, x]
+            blend = self.imageNav.getSelectionMaxRadius()
+            data = self.get_blend_spectrum_at(x, y, blend)
             if self._sel is None:
                 self._sel, = self._static_ax.plot(self.ff, data, linewidth = 1, color = [1, 0, 0])
                 self._static_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
@@ -173,15 +213,17 @@ class CubeChooserDialog(QtWidgets.QDialog):
                 self.fig.tight_layout()
             else:
                 self._sel.set_data(self.ff, data)
-                self.refresh_spectrum_scale(True)
-                self._sel.figure.canvas.draw()
+                if redraw:
+                    self.refresh_spectrum_scale()
+                    self._sel.figure.canvas.draw()
 
     def update_spectrum_at(self, x, y):
         x += self.hdu_width // 2
         y += self.hdu_height // 2
         
         if x >= 0 and y >= 0 and x < self.hdu_width and y < self.hdu_height:
-            data = self.hdu_data[:, y, x]
+            blend = self.imageNav.getSelectionMaxRadius()
+            data = self.get_blend_spectrum_at(x, y, blend)
             if self._line is None:
                 self._static_ax.clear()
                 self._line, = self._static_ax.plot(self.ff, data, linewidth = 1)
@@ -221,12 +263,15 @@ class CubeChooserDialog(QtWidgets.QDialog):
     def get_selection_center(self):
         return self.xSpaxSpinBox.value(), self.ySpaxSpinBox.value()
 
-    def set_selection_spaxel(self, px, py):
+    def set_selection_spaxel(self, px, py, redraw = True):
+        do_block_x = self.xSpaxSpinBox.blockSignals(True)
+        do_block_y = self.ySpaxSpinBox.blockSignals(True)
+
         self.xSpaxSpinBox.setValue(px)
         self.ySpaxSpinBox.setValue(py)
         self.imageNav.setSelection(px, py)
         self.zoomNav.setSelection(px, py)
-        self.update_selection_spaxel(px, py)
+        self.update_selection_spaxel(px, py, redraw)
         
         if self.have_x_units:
             if self.xStackedWidget.currentIndex() == 1:
@@ -241,6 +286,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
                 blocked = self.ySpinBox.blockSignals(True)
                 self.ySpinBox.setValue(val)
                 self.ySpinBox.blockSignals(blocked)
+
+        self.xSpaxSpinBox.blockSignals(do_block_x)
+        self.ySpaxSpinBox.blockSignals(do_block_y)
 
     def configureCoordAxis(
         self,
@@ -258,10 +306,10 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
         if units == 'deg':
             # This quantity can be expressed as an angle. Let's go ahead
-            if mag == 'ra' or mag == 'ra---sin':
+            if mag == 'ra' or mag == 'ra---sin' or mag == 'ra---tan':
                 mag = 'Right ascension'
                 spinWidget.setFormat('hms')
-            elif mag == 'dec' or mag == 'dec--sin':
+            elif mag == 'dec' or mag == 'dec--sin' or mag == 'dec--tan':
                 mag = 'Declination'
                 spinWidget.setFormat('dms')
             else:
@@ -306,6 +354,8 @@ class CubeChooserDialog(QtWidgets.QDialog):
             for i in args:
                 conv.append(i * mult)
         else:
+            if unit == 'mum':
+                unit = 'µm'
             conv = list(args)
 
         return tuple([unit] + conv)
@@ -321,17 +371,38 @@ class CubeChooserDialog(QtWidgets.QDialog):
             conv = list(args)
         return tuple([unit] + conv)
 
+    def mag_to_sci(self, val):
+        sign = val < 0
+        if sign:
+            val = -val
+
+        if val == 0:
+            return '0'
+        
+        exp = int(np.floor(np.log10(val)))
+        mult   = 10**(-exp)
+        
+        result = f'{val * mult:.3f}'
+
+        if sign:
+            result = '-' + result
+
+        if exp != 0:
+            result += f" × 10<sup>{exp}</sup>"
+
+        return result
+
     def extract_hdu_unit_info(self):
         self.b_mag   = self.hdrdfl('BTYPE', 'Arbitrary intensity')
-        self.b_unit  = self.hdrdfl('BUNIT', 'Arbitrary units')
-
+        self.b_unit  = self.hdrdfl('BUNIT', 'a.u.')
+        
         self.x_mag   = self.hdu.header['CTYPE1']
         self.x_unit  = self.hdu.header['CUNIT1']
 
         if self.x_unit is not None:
             self.have_x_units = True
-            self.x_rndx  = self.hdu.header['CRPIX1'] - 1
-            self.x_0     = self.hdu.header['CRVAL1']
+            self.x_rndx  = self.hdrdfl('CRPIX1', 1) - 1
+            self.x_0     = self.hdrdfl('CRVAL1', 0)
             self.x_delta = self.hdu.header['CDELT1']
             self.x_unit, self.x_0, self.x_delta = \
                 self.conv_sky_units(self.x_unit, self.x_0, self.x_delta)
@@ -341,19 +412,39 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
         if self.y_unit is not None:
             self.have_y_units = True
-            self.y_rndx  = self.hdu.header['CRPIX2'] - 1
-            self.y_0     = self.hdu.header['CRVAL2']
+            self.y_rndx  = self.hdrdfl('CRPIX2', 1) - 1
+            self.y_0     = self.hdrdfl('CRVAL2', 0)
             self.y_delta = self.hdu.header['CDELT2']
             self.y_unit, self.y_0, self.y_delta = \
                 self.conv_sky_units(self.y_unit, self.y_0, self.y_delta)
         
         self.f_mag   = self.hdu.header['CTYPE3']
         self.f_unit  = self.hdu.header['CUNIT3']
-        self.f_rndx  = self.hdu.header['CRPIX3'] - 1
-        self.f_0     = self.hdu.header['CRVAL3']
+        self.f_rndx  = self.hdrdfl('CRPIX3', 1) - 1
+        self.f_0     = self.hdrdfl('CRVAL3', 0)
         self.f_delta = self.hdu.header['CDELT3']
 
+        # Adjust third axis first.
+        self.f_min   = (0 - self.f_rndx) * self.f_delta + self.f_0
+        self.f_max   = (self.hdu_depth - 1 - self.f_rndx) * self.f_delta + self.f_0
 
+        do_rev = False
+        if self.f_min > self.f_max:
+            do_rev = True
+            tmp = self.f_min
+            self.f_min = self.f_max
+            self.f_max = tmp
+
+        self.f_unit, self.f_min, self.f_max, self.f_0, self.f_delta = \
+            self.conv_freq_units(
+                self.f_unit,
+                self.f_max,
+                self.f_min, self.f_max, self.f_0, self.f_delta)
+        if do_rev:
+            self.ff      = np.linspace(self.f_max, self.f_min, self.hdu_depth)
+        else:
+            self.ff      = np.linspace(self.f_min, self.f_max, self.hdu_depth)
+    
         # Adjust horizontal axis
         self.xSpaxSpinBox.setMinimum(0)
         self.xSpaxSpinBox.setMaximum(self.hdu_width - 1)
@@ -398,48 +489,33 @@ class CubeChooserDialog(QtWidgets.QDialog):
             self.y_max,
             self.y_delta)
 
-        # Adjust third axis
-        self.f_min   = (0 - self.f_rndx) * self.f_delta + self.f_0
-        self.f_max   = (self.hdu_depth - 1 - self.f_rndx) * self.f_delta + self.f_0
-
-        do_rev = False
-        if self.f_min > self.f_max:
-            do_rev = True
-            tmp = self.f_min
-            self.f_min = self.f_max
-            self.f_max = tmp
-
-            self.f_unit, self.f_min, self.f_max, self.f_0, self.f_delta = \
-                self.conv_freq_units(
-                    self.f_unit,
-                    self.f_max,
-                    self.f_min, self.f_max, self.f_0, self.f_delta)
-        if do_rev:
-            self.ff      = np.linspace(self.f_max, self.f_min, self.hdu_depth)
-        else:
-            self.ff      = np.linspace(self.f_min, self.f_max, self.hdu_depth)
-    
     def set_hdu(self, hdu):
         self.hdu = hdu
         
         self.hdu_data       = self.hdu.data
-        sane = self.hdu_data[~np.isnan(self.hdu_data)]
+        sane = self.hdu_data[~np.isnan(self.hdu_data) & ~np.isinf(self.hdu_data)]
 
-        self.hdu_abs_max    = np.max(sane)
-        self.hdu_abs_min    = np.min(sane)
+        if len(sane) > 0:
+            self.hdu_abs_min   = np.min(sane)
+            self.hdu_abs_max   = np.max(sane)
+        else:
+            self.hdu_abs_min   = 0
+            self.hdu_abs_max   = 1
 
         if len(self.hdu_data.shape) == 4 and self.hdu_data.shape[0] == 1:
             self.hdu_data = self.hdu_data.reshape( \
                 self.hdu_data.shape[1],
                 self.hdu_data.shape[2],
                 self.hdu_data.shape[3])
+            
 
         if self.hdu_depth != self.hdu_data.shape[0]:
             self._line = None
+            self._sel  = None
 
         self.hdu_depth  = self.hdu_data.shape[0]
-        self.hdu_height = self.hdu_data.shape[2]
-        self.hdu_width  = self.hdu_data.shape[1]
+        self.hdu_height = self.hdu_data.shape[1]
+        self.hdu_width  = self.hdu_data.shape[2]
 
         self.extract_hdu_unit_info()
 
@@ -470,7 +546,6 @@ class CubeChooserDialog(QtWidgets.QDialog):
         z1 = 256 / self.hdu_height
         z2 = 512 / self.hdu_width
         self.imageNav.setZoom(np.min([z1, z2]))
-        self.zoomNav.setImageData(self.hdu_slice)
         self.zoomNav.setZoom(self.zoomNav.width() / 10)
 
         self.previewStackedWidget.setCurrentIndex(0)
@@ -486,6 +561,15 @@ class CubeChooserDialog(QtWidgets.QDialog):
         if not self.img_auto_scale_enabled():
             self.apply_current_img_scale()
 
+        self.refresh_img_scale_info()
+
+    def refresh_img_scale_info(self):
+        min, max = self.imageNav.getCurrentLimits()
+        self.imgScaleLabel.setText(
+            f'<b>{self.mag_to_sci(min)} {self.b_unit}</b>' +\
+                f' to <b>{self.mag_to_sci(max)} {self.b_unit}</b>'
+        )
+        
     def refresh_spectrum_scale(self, force_draw = False):
         if not self.autoscale:
             self._static_ax.relim()
@@ -552,15 +636,17 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.do_open()
     
     def on_image_nav_move(self, x, y):
+        self.last_mov_x = x
+        self.last_mov_y = y
         self.zoomNav.zoomToPoint(x, y)
         self.update_spectrum_at(int(np.floor(x)), int(np.floor(y)))
 
     def on_slice_changed(self):
         self.refresh_hdu()
 
-    def on_selection_changed(self):
+    def on_selection_changed(self, last):
         px, py = self.imageNav.getSelection()
-        self.set_selection_spaxel(px, py)
+        self.set_selection_spaxel(px, py, last)
 
     def on_spax_spin_box_changed(self):
         px, py = self.get_selection_center()
@@ -574,6 +660,23 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
     def on_blend_setting_changed(self):
         self.refresh_ui_state()
+        if self.blend_enabled():
+            self.imageNav.setBlendRadius(self.blendRadiusSpin.value())
+            self.zoomNav.setBlendRadius(self.blendRadiusSpin.value())
+        else:
+            self.imageNav.setBlendRadius(None)
+            self.zoomNav.setBlendRadius(None)
+        
+        # Force update of the selection
+        px, py = self.get_selection_center()
+        self.set_selection_spaxel(px, py)
+
+        # And the spectrum
+        if self.last_mov_x is not None and self.last_mov_y is not None:
+            x = self.last_mov_x
+            y = self.last_mov_y
+            self.zoomNav.zoomToPoint(x, y)
+            self.update_spectrum_at(int(np.floor(x)), int(np.floor(y)))
 
     def on_img_scale_changed(self):
         self.refresh_ui_state()
@@ -585,4 +688,6 @@ class CubeChooserDialog(QtWidgets.QDialog):
             self.imageNav.setAutoScale(False)
             self.zoomNav.setAutoScale(False)
             self.apply_current_img_scale()
+        
+        self.refresh_img_scale_info()
 

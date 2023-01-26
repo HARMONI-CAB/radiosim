@@ -36,7 +36,7 @@ from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6 import QtWidgets
 
 class ImageNavWidget(QtWidgets.QWidget):
-    selChanged = pyqtSignal()
+    selChanged = pyqtSignal("bool")
     mouseMoved = pyqtSignal("float", "float")
 
     def __init__(self, *args, **kwargs):
@@ -53,7 +53,9 @@ class ImageNavWidget(QtWidgets.QWidget):
         self.autoscale = False
         self.sane_min = 0
         self.sane_max = 1
-        
+        self.blend = None
+        self.movingSelection = False
+
         self.setImageLimits(self.sane_min, self.sane_max)
 
         self.sel_x = 0
@@ -72,7 +74,7 @@ class ImageNavWidget(QtWidgets.QWidget):
         if self.array is not None:
             colormap   = mpl.colormaps['inferno']
             normalized = (self.array - self.arr_min) * (1. / (self.arr_max - self.arr_min))
-            clipped    = np.transpose(np.clip(normalized, 0, 1), (1, 0))
+            clipped    = np.clip(normalized, 0, 1)
             as_bytes = (255 * colormap(clipped)).copy().astype('ubyte')
 
             self.previewImage = QtGui.QImage(
@@ -98,11 +100,14 @@ class ImageNavWidget(QtWidgets.QWidget):
 
     def setImageData(self, array):
         self.array = array
-        sane = array[~np.isnan(array)]
-
-        self.sane_min = np.min(sane)
-        self.sane_max = np.max(sane)
-
+        sane = array[~np.isnan(array) & ~np.isinf(array)]
+        if len(sane) > 0:
+            self.sane_min = np.min(sane)
+            self.sane_max = np.max(sane)
+        else:
+            self.sane_min = 0
+            self.sane_max = 1
+            
         if self.autoscale:
             self.setImageLimits(self.sane_min, self.sane_max)
         
@@ -113,6 +118,19 @@ class ImageNavWidget(QtWidgets.QWidget):
         
         self.recalcImage()
         self.update()
+
+    def setBlendRadius(self, spaxels):
+        if spaxels != self.blend:
+            if spaxels is None:
+                self.blend = None
+            else:
+                self.blend = int(np.floor(spaxels))
+            self.update()
+
+    def getSelectionMaxRadius(self):
+        if self.blend is None:
+            return self.blend
+        return np.sqrt(.5 ** 2 + (self.blend - .5) ** 2)
 
     def paintEvent(self, event):
         if self.previewImage is not None:
@@ -139,6 +157,49 @@ class ImageNavWidget(QtWidgets.QWidget):
                     px_sel_start_y,
                     px_sel_end_x - px_sel_start_x,
                     px_sel_end_y - px_sel_start_y))
+
+            radius = self.getSelectionMaxRadius()
+
+            if radius is not None:
+                px_sel_start_x, px_sel_start_y = \
+                    self.img2px(self.sel_x + .5 - radius, self.sel_y + .5 - radius)
+                px_sel_end_x,   px_sel_end_y = \
+                    self.img2px(self.sel_x + .5 + radius, self.sel_y + .5 + radius)
+
+                if px_sel_start_x < self.width() and px_sel_end_x >= 0 and \
+                    px_sel_start_y < self.height() and px_sel_end_y >= 0:
+                    pen = QtGui.QPen(Qt.PenStyle.DashLine)
+                    pen.setColor(QtGui.QColor(0, 255, 0))
+                    painter.setPen(pen)
+                    painter.drawArc(
+                        QtCore.QRectF(px_sel_start_x,
+                            px_sel_start_y,
+                            px_sel_end_x - px_sel_start_x,
+                            px_sel_end_y - px_sel_start_y),
+                        0,
+                        360 * 16)
+                
+                if self.move_last_pos is not None:
+                    px_sel_start_x, px_sel_start_y = \
+                        self.move_last_pos.x() - radius * self.zoom, \
+                        self.move_last_pos.y() - radius * self.zoom
+                    
+                    px_sel_end_x, px_sel_end_y = \
+                        self.move_last_pos.x() + radius * self.zoom, \
+                        self.move_last_pos.y() + radius * self.zoom
+                    
+                    if px_sel_start_x < self.width() and px_sel_end_x >= 0 and \
+                        px_sel_start_y < self.height() and px_sel_end_y >= 0:
+                        pen = QtGui.QPen(Qt.PenStyle.DashLine)
+                        pen.setColor(QtGui.QColor(255, 0, 0))
+                        painter.setPen(pen)
+                        painter.drawArc(
+                            QtCore.QRectF(px_sel_start_x,
+                                px_sel_start_y,
+                                px_sel_end_x - px_sel_start_x,
+                                px_sel_end_y - px_sel_start_y),
+                            0,
+                            360 * 16)
             painter.end()
 
     def setZoom(self, zoom):
@@ -158,19 +219,27 @@ class ImageNavWidget(QtWidgets.QWidget):
         self.update()
         
     def setSelection(self, x, y):
-        self.sel_x = np.clip(int(x), 0, self.img_width - 1)
-        self.sel_y = np.clip(int(y), 0, self.img_height - 1)
-        self.update()
+        sel_x = np.clip(int(x), 0, self.img_width - 1)
+        sel_y = np.clip(int(y), 0, self.img_height - 1)
 
+        if sel_x != self.sel_x or sel_y != self.sel_y:
+            self.sel_x = sel_x
+            self.sel_y = sel_y
+            self.update()
+
+    def updateSelectionFromEvent(self, event, last = True):
+        x, y = self.px2img(event.pos().x(), event.pos().y())
+        self.setSelection(x, y)
+        self.selChanged.emit(last)
+        self.update()
+        
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.MiddleButton:
             self.move_ref_pos = event.pos()
 
         if event.button() == Qt.MouseButton.LeftButton and event.pos() in self.rect():
-            x, y = self.px2img(event.pos().x(), event.pos().y())
-            self.setSelection(x, y)
-            self.selChanged.emit()
-            self.update()
+            self.movingSelection = True
+            self.updateSelectionFromEvent(event)
 
     def mouseReleaseEvent(self, event):
         # ensure that the left button was pressed *and* released within the
@@ -183,6 +252,11 @@ class ImageNavWidget(QtWidgets.QWidget):
             self.move_ref_pos = None
             self.move_last_pos = None
 
+            if event.button() == Qt.MouseButton.LeftButton:
+                if self.movingSelection:
+                    self.updateSelectionFromEvent(event)
+                self.movingSelection = False
+
     def mouseMoveEvent(self, event):
         if self.interactive:
             if self.move_ref_pos is not None:
@@ -194,6 +268,13 @@ class ImageNavWidget(QtWidgets.QWidget):
                 self.update()
             else:
                 self.mouseMoved.emit(*self.px2imgcenter(event.position().x(), event.position().y()))
+
+            if self.movingSelection:
+                self.updateSelectionFromEvent(event, False)
+            
+            if self.blend is not None:
+                self.move_last_pos = event.position()
+                self.update()
 
     def px2img(self, px, py):
         ix, iy = self.px2imgcenter(px, py)
