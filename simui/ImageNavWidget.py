@@ -48,34 +48,66 @@ class ImageNavWidget(QtWidgets.QWidget):
         self.move_last_pos = None
         self.move_ref_pos = None
         self.interactive = False
+        self.x0 = 0
+        self.y0 = 0
+        self.autoscale = False
+        self.sane_min = 0
+        self.sane_max = 1
+        
+        self.setImageLimits(self.sane_min, self.sane_max)
+
+        self.sel_x = 0
+        self.sel_y = 0
 
         self.setMouseTracking(True)
 
+    def getSelection(self):
+        return self.sel_x, self.sel_y
+    
     def setInteractive(self, interactive):
         self.interactive = interactive
         self.setMouseTracking(self.interactive)
 
     def recalcImage(self):
-        colormap   = mpl.colormaps['inferno']
-        normalized = (self.array - self.arr_min) * (1. / (self.arr_max - self.arr_min))
-        clipped    = np.transpose(np.clip(normalized, 0, 1), (1, 0, 2))
-        as_bytes = (255 * colormap(clipped)).copy().astype('ubyte')
+        if self.array is not None:
+            colormap   = mpl.colormaps['inferno']
+            normalized = (self.array - self.arr_min) * (1. / (self.arr_max - self.arr_min))
+            clipped    = np.transpose(np.clip(normalized, 0, 1), (1, 0))
+            as_bytes = (255 * colormap(clipped)).copy().astype('ubyte')
 
-        self.previewImage = QtGui.QImage(
-            as_bytes.data,
-            self.img_width,
-            self.img_height,
-            QtGui.QImage.Format.Format_RGBX8888)
+            self.previewImage = QtGui.QImage(
+                as_bytes.data,
+                self.img_width,
+                self.img_height,
+                QtGui.QImage.Format.Format_RGBX8888)
                 
+    def getCurrentLimits(self):
+        return self.arr_min, self.arr_max
+
+    def setImageLimits(self, min, max):
+        self.arr_min = min
+        self.arr_max = max
+        self.recalcImage()
+        self.update()
+
+    def setAutoScale(self, autoscale):
+        if self.autoscale != autoscale:
+            self.autoscale = autoscale
+            if self.autoscale:
+                self.setImageLimits(self.sane_min, self.sane_max)
+
     def setImageData(self, array):
         self.array = array
         sane = array[~np.isnan(array)]
-        self.arr_min = np.min(sane)
-        self.arr_max = np.max(sane)
+
+        self.sane_min = np.min(sane)
+        self.sane_max = np.max(sane)
+
+        if self.autoscale:
+            self.setImageLimits(self.sane_min, self.sane_max)
+        
         self.img_width  = array.shape[1]
         self.img_height = array.shape[0]
-        self.x0 = 0
-        self.y0 = 0
 
         self.ratio   = self.img_height / self.img_width
         
@@ -87,7 +119,7 @@ class ImageNavWidget(QtWidgets.QWidget):
             painter = QtGui.QPainter(self)
             target_width  = self.img_width * self.zoom
             target_height = self.img_height * self.zoom
-            target_x, target_y = self.img2px(-self.img_width / 2, -self.img_height / 2)
+            target_x, target_y = self.imgcenter2px(-self.img_width / 2, -self.img_height / 2)
             painter.drawPixmap(
                 QtCore.QRect(
                     int(target_x),
@@ -96,11 +128,18 @@ class ImageNavWidget(QtWidgets.QWidget):
                     int(target_height)),
                 QtGui.QPixmap(self.previewImage))
 
-            painter.end()
+            px_sel_start_x, px_sel_start_y = self.img2px(self.sel_x + 0, self.sel_y + 0)
+            px_sel_end_x,   px_sel_end_y = self.img2px(self.sel_x + 1, self.sel_y + 1)
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.move_ref_pos = event.pos()
+            if px_sel_start_x < self.width() and px_sel_end_x >= 0 and \
+                px_sel_start_y < self.height() and px_sel_end_y >= 0:
+                painter.setPen(QtGui.QColor(0, 255, 0))
+                painter.drawRect(
+                    QtCore.QRectF(px_sel_start_x,
+                    px_sel_start_y,
+                    px_sel_end_x - px_sel_start_x,
+                    px_sel_end_y - px_sel_start_y))
+            painter.end()
 
     def setZoom(self, zoom):
         self.preferredZoom = zoom
@@ -114,25 +153,36 @@ class ImageNavWidget(QtWidgets.QWidget):
         self.update()
 
     def zoomToPoint(self, x, y):
-        self.x0 = x * self.zoom
-        self.y0 = y * self.zoom
+        self.x0 = -x * self.zoom
+        self.y0 = -y * self.zoom
         self.update()
         
+    def setSelection(self, x, y):
+        self.sel_x = np.clip(int(x), 0, self.img_width - 1)
+        self.sel_y = np.clip(int(y), 0, self.img_height - 1)
+        self.update()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self.move_ref_pos = event.pos()
+
+        if event.button() == Qt.MouseButton.LeftButton and event.pos() in self.rect():
+            x, y = self.px2img(event.pos().x(), event.pos().y())
+            self.setSelection(x, y)
+            self.selChanged.emit()
+            self.update()
+
     def mouseReleaseEvent(self, event):
         # ensure that the left button was pressed *and* released within the
         # geometry of the widget; if so, emit the signal;
         if self.interactive:
-            if (self.move_ref_pos is not None and 
-                event.button() == Qt.MouseButton.LeftButton and 
-                event.pos() in self.rect()):
-                    self.selChanged.emit()
-            self.move_ref_pos = None
-            self.move_last_pos = None
-
             if event.button() == Qt.MouseButton.RightButton:
                 self.resetZoom()
                 self.update()
-        
+
+            self.move_ref_pos = None
+            self.move_last_pos = None
+
     def mouseMoveEvent(self, event):
         if self.interactive:
             if self.move_ref_pos is not None:
@@ -143,14 +193,21 @@ class ImageNavWidget(QtWidgets.QWidget):
                 self.move_last_pos = event.position()
                 self.update()
             else:
-                self.mouseMoved.emit(*self.px2img(event.position().x(), event.position().y()))
+                self.mouseMoved.emit(*self.px2imgcenter(event.position().x(), event.position().y()))
 
     def px2img(self, px, py):
+        ix, iy = self.px2imgcenter(px, py)
+        return ix + self.img_width // 2, iy + self.img_height // 2
+
+    def img2px(self, x, y):
+        return self.imgcenter2px(x - self.img_width // 2, y - self.img_height //2)
+
+    def px2imgcenter(self, px, py):
         return \
             (px - self.width() / 2 - self.x0) / self.zoom, \
             (py - self.height() / 2 - self.y0) / self.zoom
 
-    def img2px(self, x, y):
+    def imgcenter2px(self, x, y):
         return \
             self.width() / 2  + x * self.zoom + self.x0, \
             self.height() / 2 + y * self.zoom + self.y0
@@ -174,7 +231,7 @@ class ImageNavWidget(QtWidgets.QWidget):
 
         if self.interactive:
             prev_zoom = self.zoom
-            x_z, y_z = self.px2img(event.position().x(), event.position().y())
+            x_z, y_z = self.px2imgcenter(event.position().x(), event.position().y())
             self.zoom *= np.exp(event.angleDelta().y() / 1200)
             self.x0 += x_z * (prev_zoom - self.zoom)
             self.y0 += y_z * (prev_zoom - self.zoom)
