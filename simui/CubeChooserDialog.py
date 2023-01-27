@@ -80,6 +80,10 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.detailStackedWidget.insertWidget(0, self.zoomNav)
 
         self.autoscale = self.autoScaleButton.isChecked()
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowMaximizeButtonHint, True)
+        self.setWindowFlag(QtCore.Qt.WindowType.CustomizeWindowHint, True)
+        
         self.add_spectrum_plot()
         self.refresh_ui_state()
         self.connect_all()
@@ -93,6 +97,28 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.buttonBox.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(
             self.selected_data is not None
         )
+
+        reScaleEnabled = self.reScaleCheck.isChecked()
+        self.reScaleMantissaSpin.setEnabled(reScaleEnabled)
+        self.reScale10Label.setEnabled(reScaleEnabled)
+        self.reScaleExpSpin.setEnabled(reScaleEnabled)
+
+    def getReScaleFactor(self):
+        reScaleEnabled = self.reScaleCheck.isChecked()
+        if reScaleEnabled:
+            return self.reScaleMantissaSpin.value() * 10 ** self.reScaleExpSpin.value()
+        
+        return 1
+
+    def getYAxisName(self):
+        reScaleEnabled = self.reScaleCheck.isChecked()
+        if reScaleEnabled:
+            mant = self.reScaleMantissaSpin.value()
+            exp  = self.reScaleExpSpin.value()
+
+            return fr'{self.b_mag} (scaled by ${self.mag_to_sci(self.getReScaleFactor(), True)}$)'
+        else:
+            return f'{self.b_mag} ({self.b_unit})'
 
     def blend_enabled(self):
         return self.blendCheck.isChecked()
@@ -125,6 +151,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.openButton.clicked.connect(self.on_load_cube)
         self.blendCheck.toggled.connect(self.on_blend_setting_changed)
         self.sliceSelCheck.toggled.connect(self.on_slice_sel_toggled)
+        self.reScaleCheck.toggled.connect(self.on_rescale_check)
+        self.reScaleExpSpin.valueChanged.connect(self.on_rescale_changed)
+        self.reScaleMantissaSpin.valueChanged.connect(self.on_rescale_changed)
         self.blendRadiusSpin.valueChanged.connect(self.on_blend_setting_changed)
         self.autoScaleButton.toggled.connect(self.on_toggle_autoscale)
         self.imgAutoScaleButton.toggled.connect(self.on_img_scale_changed)
@@ -193,8 +222,11 @@ class CubeChooserDialog(QtWidgets.QDialog):
             x = self.hdu_width - 1
         if y >= self.hdu_height:
             y = self.hdu_height - 1
+
+        factor = self.getReScaleFactor()
+
         if blend is None or blend < 1:
-            return self.hdu_data[:, y, x]
+            return factor * self.hdu_data[:, y, x]
         else:
             radius = int(np.floor(blend))
             indexes = np.linspace(-radius + 1, radius - 1, 2 * radius - 1).astype(int)
@@ -210,7 +242,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
             xx = xx[valid]
             yy = yy[valid]
 
-            selection = self.hdu_data[:, yy, xx]
+            selection = factor * self.hdu_data[:, yy, xx]
             return selection.mean(axis = 1)
 
     def update_selection_spaxel(self, x, y, redraw = True):
@@ -225,7 +257,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
             if self.sel_plot is None:
                 self.sel_plot, = self.spect_ax.plot(self.ff, data, linewidth = 1, color = [1, 0, 0], label = 'Current selection')
                 self.spect_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
-                self.spect_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
+                self.spect_ax.set_ylabel(self.getYAxisName())
                 self.spect_ax.legend()
                 self.fig.tight_layout()
             else:
@@ -250,7 +282,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
                 self.slice_plots  = None
                 self.preview_plot,  = self.spect_ax.plot(self.ff, data, linewidth = 1, label = 'Spectrum preview')
                 self.spect_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
-                self.spect_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
+                self.spect_ax.set_ylabel(self.getYAxisName())
                 self.spect_ax.grid(True)
                 self.spect_ax.legend()
                 self.fig.tight_layout()
@@ -439,7 +471,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
             conv = list(args)
         return tuple([unit] + conv)
 
-    def mag_to_sci(self, val):
+    def mag_to_sci(self, val, latex = False):
         sign = val < 0
         if sign:
             val = -val
@@ -450,14 +482,20 @@ class CubeChooserDialog(QtWidgets.QDialog):
         exp = int(np.floor(np.log10(val)))
         mult   = 10**(-exp)
         
-        result = f'{val * mult:.3f}'
+        result = f'{val * mult:g}'
 
         if sign:
             result = '-' + result
 
         if exp != 0:
-            result += f" × 10<sup>{exp}</sup>"
-
+            if latex:
+                result += fr'\times10'
+                if exp != 1:
+                    result += fr'^{{{exp}}}'
+            else:
+                result += f" × 10"
+                if exp != 1:
+                    result += f'<sup>{exp}</sup>'
         return result
 
     def extract_hdu_unit_info(self):
@@ -636,15 +674,19 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
     def refresh_img_scale_info(self):
         min, max = self.imageNav.getCurrentLimits()
-        self.imgScaleLabel.setText(
-            f'<b>{self.mag_to_sci(min)} {self.b_unit}</b>' +\
-                f' to <b>{self.mag_to_sci(max)} {self.b_unit}</b>'
+        self.unitsLabel.setText(fr'<b>{self.b_unit}</b>')
+        self.imgScaleMinLabel.setText(
+            fr'<b>{self.mag_to_sci(min)}</b>'
         )
         
+        self.imgScaleMaxLabel.setText(
+            fr'<b>{self.mag_to_sci(max)}</b>'
+        )
     def refresh_spectrum_scale(self, force_draw = False):
         if not self.autoscale:
             self.spect_ax.relim()
-            self.spect_ax.set_ylim([self.hdu_abs_min, self.hdu_abs_max])
+            f = self.getReScaleFactor()
+            self.spect_ax.set_ylim([f * self.hdu_abs_min, f * self.hdu_abs_max])
         else:
             self.spect_ax.relim()
             self.spect_ax.autoscale_view(True, True, True)
@@ -738,7 +780,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
             self.imageNav.setBlendRadius(None)
             self.zoomNav.setBlendRadius(None)
         
-        if self.selected_data:
+        if self.selected_data is not None:
             # Force update of the selection, if any
             px, py = self.get_selection_center()
             self.set_selection_spaxel(px, py)
@@ -766,3 +808,21 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
     def on_slice_sel_toggled(self):
         self.overlay_slice()
+
+    def on_rescale_check(self):
+        self.refresh_ui_state()
+
+        if self.last_preview is not None:
+            x = self.last_mov_x
+            y = self.last_mov_y
+            self.update_spectrum_at(int(np.floor(x)), int(np.floor(y)))
+
+        if self.selected_data is not None:
+            px, py = self.get_selection_center()
+            self.set_selection_spaxel(px, py)
+
+        self.spect_ax.set_ylabel(self.getYAxisName())
+        self.spect_ax.figure.canvas.draw()
+
+    def on_rescale_changed(self):
+        self.on_rescale_check()

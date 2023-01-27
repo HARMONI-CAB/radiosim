@@ -9,14 +9,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1004</width>
-    <height>809</height>
+    <width>1250</width>
+    <height>763</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Cube spectrum chooser</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
+   <item row="2" column="1">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="0">
     <widget class="QFrame" name="frame">
      <property name="sizePolicy">
@@ -78,54 +88,248 @@
        <property name="bottomMargin">
         <number>0</number>
        </property>
-       <item row="1" column="1">
-        <widget class="QStackedWidget" name="previewStackedWidget">
+       <property name="spacing">
+        <number>3</number>
+       </property>
+       <item row="3" column="3">
+        <widget class="QGroupBox" name="groupBox_2">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
-         <property name="minimumSize">
-          <size>
-           <width>700</width>
-           <height>256</height>
-          </size>
+         <property name="title">
+          <string>Selection</string>
          </property>
-         <property name="styleSheet">
-          <string notr="true">background-color: black</string>
-         </property>
-         <widget class="QWidget" name="previewStackedWidgetPage1" native="true"/>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QStackedWidget" name="detailStackedWidget">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>256</width>
-           <height>256</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color: black</string>
-         </property>
-         <widget class="QWidget" name="detailStackedWidgetPage1" native="true">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+         <layout class="QGridLayout" name="gridLayout_8">
+          <property name="leftMargin">
+           <number>6</number>
           </property>
-         </widget>
+          <property name="topMargin">
+           <number>6</number>
+          </property>
+          <property name="rightMargin">
+           <number>6</number>
+          </property>
+          <property name="bottomMargin">
+           <number>6</number>
+          </property>
+          <property name="spacing">
+           <number>3</number>
+          </property>
+          <item row="0" column="1" colspan="3">
+           <widget class="QStackedWidget" name="xStackedWidget">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="currentIndex">
+             <number>0</number>
+            </property>
+            <widget class="QWidget" name="page">
+             <layout class="QGridLayout" name="gridLayout_9">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QSpinBox" name="xSpaxSpinBox">
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="page_2"/>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QLabel" name="reScale10Label">
+            <property name="text">
+             <string>&lt;b&gt; × 10&lt;/b&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="xLabel">
+            <property name="text">
+             <string>Right ascension</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="yLabel">
+            <property name="text">
+             <string>Declination</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="3">
+           <widget class="QStackedWidget" name="yStackedWidget">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="currentIndex">
+             <number>0</number>
+            </property>
+            <widget class="QWidget" name="page_3">
+             <layout class="QGridLayout" name="gridLayout_10">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <item row="0" column="0">
+               <widget class="QSpinBox" name="ySpaxSpinBox">
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="page_4"/>
+           </widget>
+          </item>
+          <item row="2" column="1" colspan="3">
+           <widget class="QSpinBox" name="blendRadiusSpin">
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="suffix">
+             <string> sp</string>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="3">
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="blendCheck">
+            <property name="text">
+             <string>&amp;Blend spaxels</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QDoubleSpinBox" name="reScaleMantissaSpin">
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="decimals">
+             <number>6</number>
+            </property>
+            <property name="minimum">
+             <double>0.000001000000000</double>
+            </property>
+            <property name="maximum">
+             <double>10.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>1.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2" rowspan="2">
+           <widget class="QSpinBox" name="reScaleExpSpin">
+            <property name="styleSheet">
+             <string notr="true">font-size: 10px;</string>
+            </property>
+            <property name="frame">
+             <bool>false</bool>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+            </property>
+            <property name="buttonSymbols">
+             <enum>QAbstractSpinBox::UpDownArrows</enum>
+            </property>
+            <property name="minimum">
+             <number>-30</number>
+            </property>
+            <property name="maximum">
+             <number>30</number>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="4" column="0" colspan="2">
+           <widget class="QCheckBox" name="reScaleCheck">
+            <property name="text">
+             <string>Rescale by...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="4">
+           <widget class="QCheckBox" name="sliceSelCheck">
+            <property name="text">
+             <string>&amp;Slice is selection</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
-       <item row="0" column="1" colspan="2">
+       <item row="0" column="1" colspan="4">
         <widget class="QFrame" name="frame_2">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -180,7 +384,7 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="3">
+             <item row="0" column="2">
               <spacer name="horizontalSpacer_2">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -193,344 +397,337 @@
                </property>
               </spacer>
              </item>
-             <item row="0" column="1">
-              <widget class="QPushButton" name="autoScaleButton">
-               <property name="text">
-                <string>A&amp;utoscale spectrum</string>
-               </property>
-               <property name="checkable">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
             </layout>
            </widget>
           </item>
-          <item row="2" column="4" colspan="3">
-           <widget class="QGroupBox" name="groupBox_2">
-            <property name="title">
-             <string>Selection</string>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="3">
+        <widget class="QGroupBox" name="groupBox_3">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Image limits</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <property name="leftMargin">
+           <number>6</number>
+          </property>
+          <property name="topMargin">
+           <number>6</number>
+          </property>
+          <property name="rightMargin">
+           <number>6</number>
+          </property>
+          <property name="bottomMargin">
+           <number>6</number>
+          </property>
+          <property name="spacing">
+           <number>3</number>
+          </property>
+          <item row="0" column="2" colspan="2">
+           <widget class="QLabel" name="unitsLabel">
+            <property name="text">
+             <string>TextLabel</string>
             </property>
-            <layout class="QGridLayout" name="gridLayout_8">
-             <item row="0" column="0">
-              <widget class="QLabel" name="xLabel">
-               <property name="text">
-                <string>Right ascension</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="yLabel">
-               <property name="text">
-                <string>Declination</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QCheckBox" name="blendCheck">
-               <property name="text">
-                <string>&amp;Blend spaxels</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1" colspan="2">
-              <widget class="QStackedWidget" name="xStackedWidget">
-               <property name="currentIndex">
-                <number>0</number>
-               </property>
-               <widget class="QWidget" name="page">
-                <layout class="QGridLayout" name="gridLayout_9">
-                 <property name="leftMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item row="0" column="0">
-                  <widget class="QSpinBox" name="xSpaxSpinBox">
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-               <widget class="QWidget" name="page_2"/>
-              </widget>
-             </item>
-             <item row="1" column="1" colspan="2">
-              <widget class="QStackedWidget" name="yStackedWidget">
-               <property name="currentIndex">
-                <number>0</number>
-               </property>
-               <widget class="QWidget" name="page_3">
-                <layout class="QGridLayout" name="gridLayout_10">
-                 <property name="leftMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item row="0" column="0">
-                  <widget class="QSpinBox" name="ySpaxSpinBox">
-                   <property name="alignment">
-                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-               <widget class="QWidget" name="page_4"/>
-              </widget>
-             </item>
-             <item row="3" column="1" colspan="2">
-              <widget class="QSpinBox" name="blendRadiusSpin">
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-               <property name="suffix">
-                <string> sp</string>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-              </widget>
-             </item>
-            </layout>
            </widget>
           </item>
-          <item row="2" column="7">
-           <widget class="QGroupBox" name="groupBox_3">
+          <item row="3" column="2" colspan="2">
+           <widget class="QSlider" name="baseLevelSlider">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimum">
+             <number>-1000</number>
+            </property>
+            <property name="maximum">
+             <number>1000</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksBelow</enum>
+            </property>
+            <property name="tickInterval">
+             <number>20</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2" colspan="2">
+           <widget class="QSlider" name="rangeSlider">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimum">
+             <number>-400</number>
+            </property>
+            <property name="maximum">
+             <number>400</number>
+            </property>
+            <property name="value">
+             <number>0</number>
+            </property>
+            <property name="tracking">
+             <bool>true</bool>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="invertedAppearance">
+             <bool>false</bool>
+            </property>
+            <property name="invertedControls">
+             <bool>false</bool>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksBelow</enum>
+            </property>
+            <property name="tickInterval">
+             <number>10</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="rangeLabel">
+            <property name="text">
+             <string>Range</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1" colspan="3">
+           <widget class="QPushButton" name="imgAutoScaleButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>&amp;Autoscale image</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="nonae">
+            <property name="text">
+             <string>Units:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="baseLevelLabel">
+            <property name="text">
+             <string>Base level</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>Min:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Max:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2" colspan="2">
+           <widget class="QLabel" name="imgScaleMinLabel">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="title">
-             <string>Image magnitude</string>
+            <property name="text">
+             <string>X units - Y units</string>
             </property>
-            <layout class="QGridLayout" name="gridLayout_6">
-             <item row="1" column="2" colspan="2">
-              <widget class="QSlider" name="baseLevelSlider">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimum">
-                <number>-1000</number>
-               </property>
-               <property name="maximum">
-                <number>1000</number>
-               </property>
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="tickPosition">
-                <enum>QSlider::TicksBelow</enum>
-               </property>
-               <property name="tickInterval">
-                <number>20</number>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="3">
-              <widget class="QPushButton" name="imgAutoScaleButton">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>&amp;Auto</string>
-               </property>
-               <property name="checkable">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="2" colspan="2">
-              <widget class="QSlider" name="rangeSlider">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimum">
-                <number>-400</number>
-               </property>
-               <property name="maximum">
-                <number>400</number>
-               </property>
-               <property name="value">
-                <number>0</number>
-               </property>
-               <property name="tracking">
-                <bool>true</bool>
-               </property>
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="invertedAppearance">
-                <bool>false</bool>
-               </property>
-               <property name="invertedControls">
-                <bool>false</bool>
-               </property>
-               <property name="tickPosition">
-                <enum>QSlider::TicksBelow</enum>
-               </property>
-               <property name="tickInterval">
-                <number>10</number>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="1">
-              <widget class="QLabel" name="rangeLabel">
-               <property name="text">
-                <string>Range</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QLabel" name="baseLevelLabel">
-               <property name="text">
-                <string>Base level</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QLabel" name="label_3">
-               <property name="text">
-                <string>Scale</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="2">
-              <widget class="QLabel" name="imgScaleLabel">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>X units - Y units</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
            </widget>
           </item>
-          <item row="2" column="8" colspan="2">
-           <widget class="QGroupBox" name="groupBox_4">
-            <property name="title">
-             <string>Slice</string>
+          <item row="2" column="2" colspan="2">
+           <widget class="QLabel" name="imgScaleMaxLabel">
+            <property name="text">
+             <string>TextLabel</string>
             </property>
-            <layout class="QGridLayout" name="gridLayout_7">
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_7">
-               <property name="text">
-                <string>Center wavelength</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QDoubleSpinBox" name="centralWavelengthSpin">
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-               <property name="suffix">
-                <string> Å</string>
-               </property>
-               <property name="decimals">
-                <number>3</number>
-               </property>
-               <property name="minimum">
-                <double>3000.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>20000.000000000000000</double>
-               </property>
-               <property name="singleStep">
-                <double>0.001000000000000</double>
-               </property>
-               <property name="stepType">
-                <enum>QAbstractSpinBox::DefaultStepType</enum>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="0">
-              <widget class="QLabel" name="label_8">
-               <property name="text">
-                <string>Passband width</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="1">
-              <widget class="QDoubleSpinBox" name="passBandWidthSpin">
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-               <property name="suffix">
-                <string> Å</string>
-               </property>
-               <property name="decimals">
-                <number>1</number>
-               </property>
-               <property name="minimum">
-                <double>3000.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>100000.000000000000000</double>
-               </property>
-               <property name="stepType">
-                <enum>QAbstractSpinBox::DefaultStepType</enum>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="0" colspan="2">
-              <widget class="QCheckBox" name="sliceSelCheck">
-               <property name="text">
-                <string>&amp;Slice is selection</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
+           </widget>
+          </item>
+          <item row="7" column="1" colspan="3">
+           <widget class="QPushButton" name="autoScaleButton">
+            <property name="text">
+             <string>A&amp;utoscale spectrum</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
          </layout>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="title">
+          <string>Slice</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <property name="leftMargin">
+           <number>6</number>
+          </property>
+          <property name="topMargin">
+           <number>6</number>
+          </property>
+          <property name="rightMargin">
+           <number>6</number>
+          </property>
+          <property name="bottomMargin">
+           <number>6</number>
+          </property>
+          <property name="spacing">
+           <number>3</number>
+          </property>
+          <item row="0" column="1">
+           <widget class="QLabel" name="label_7">
+            <property name="text">
+             <string>Center wavelength</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QDoubleSpinBox" name="centralWavelengthSpin">
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="suffix">
+             <string> Å</string>
+            </property>
+            <property name="decimals">
+             <number>3</number>
+            </property>
+            <property name="minimum">
+             <double>3000.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>20000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.001000000000000</double>
+            </property>
+            <property name="stepType">
+             <enum>QAbstractSpinBox::DefaultStepType</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="label_8">
+            <property name="text">
+             <string>Passband width</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2">
+           <widget class="QDoubleSpinBox" name="passBandWidthSpin">
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+            <property name="suffix">
+             <string> Å</string>
+            </property>
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="minimum">
+             <double>3000.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>100000.000000000000000</double>
+            </property>
+            <property name="stepType">
+             <enum>QAbstractSpinBox::DefaultStepType</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="2" rowspan="3">
+        <widget class="QStackedWidget" name="detailStackedWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>256</width>
+           <height>256</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: black</string>
+         </property>
+         <widget class="QWidget" name="detailStackedWidgetPage1" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </widget>
+       </item>
+       <item row="1" column="1" rowspan="3">
+        <widget class="QStackedWidget" name="previewStackedWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>700</width>
+           <height>256</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: black</string>
+         </property>
+         <widget class="QWidget" name="previewStackedWidgetPage1" native="true"/>
         </widget>
        </item>
       </layout>
@@ -542,20 +739,16 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>100</width>
+        <height>100</height>
+       </size>
+      </property>
       <property name="styleSheet">
        <string notr="true">background-color: white;</string>
       </property>
      </widget>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
     </widget>
    </item>
   </layout>
