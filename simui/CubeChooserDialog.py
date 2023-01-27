@@ -71,7 +71,11 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
         self.last_mov_x = None
         self.last_mov_y = None
-
+        self.last_spectrum_max = None
+        self.last_spectrum_min = None
+        
+        self.selected_data = None
+        self.last_preview = None
         self.previewStackedWidget.insertWidget(0, self.imageNav)
         self.detailStackedWidget.insertWidget(0, self.zoomNav)
 
@@ -86,6 +90,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.rangeSlider.setEnabled(not self.img_auto_scale_enabled())
         self.baseLevelLabel.setEnabled(not self.img_auto_scale_enabled())
         self.rangeLabel.setEnabled(not self.img_auto_scale_enabled())
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(
+            self.selected_data is not None
+        )
 
     def blend_enabled(self):
         return self.blendCheck.isChecked()
@@ -106,15 +113,18 @@ class CubeChooserDialog(QtWidgets.QDialog):
         layout.addWidget(NavigationToolbar(static_canvas, self))
         layout.addWidget(static_canvas)
 
-        self._static_ax = static_canvas.figure.subplots()
-        self._static_ax.yaxis.set_major_formatter(FormatStrFormatter('%.3e'))
-        self._line      = None
-        self._sel       = None
+        self.spect_ax = static_canvas.figure.subplots()
+        self.spect_ax.yaxis.set_major_formatter(FormatStrFormatter('%.3e'))
+        self.preview_plot      = None
+        self.sel_plot       = None
+        self.slice_plots     = None
+        
         self.fig.tight_layout()
 
     def connect_all(self):
         self.openButton.clicked.connect(self.on_load_cube)
         self.blendCheck.toggled.connect(self.on_blend_setting_changed)
+        self.sliceSelCheck.toggled.connect(self.on_slice_sel_toggled)
         self.blendRadiusSpin.valueChanged.connect(self.on_blend_setting_changed)
         self.autoScaleButton.toggled.connect(self.on_toggle_autoscale)
         self.imgAutoScaleButton.toggled.connect(self.on_img_scale_changed)
@@ -172,6 +182,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.imageNav.setImageData(self.hdu_slice)
         self.zoomNav.setImageData(self.hdu_slice)
         self.refresh_img_scale_info()
+        self.overlay_slice()
 
     def get_blend_spectrum_at(self, x, y, blend):
         if x < 0:
@@ -205,17 +216,23 @@ class CubeChooserDialog(QtWidgets.QDialog):
     def update_selection_spaxel(self, x, y, redraw = True):
         if x >= 0 and y >= 0 and x < self.hdu_width and y < self.hdu_height:
             blend = self.imageNav.getSelectionMaxRadius()
-            data = self.get_blend_spectrum_at(x, y, blend)
-            if self._sel is None:
-                self._sel, = self._static_ax.plot(self.ff, data, linewidth = 1, color = [1, 0, 0])
-                self._static_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
-                self._static_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
+            self.selected_data  = self.get_blend_spectrum_at(x, y, blend)
+            self.refresh_ui_state()
+            self.overlay_slice(False)
+
+            data = self.selected_data
+
+            if self.sel_plot is None:
+                self.sel_plot, = self.spect_ax.plot(self.ff, data, linewidth = 1, color = [1, 0, 0], label = 'Current selection')
+                self.spect_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
+                self.spect_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
+                self.spect_ax.legend()
                 self.fig.tight_layout()
             else:
-                self._sel.set_data(self.ff, data)
+                self.sel_plot.set_data(self.ff, data)
                 if redraw:
                     self.refresh_spectrum_scale()
-                    self._sel.figure.canvas.draw()
+                    self.sel_plot.figure.canvas.draw()
 
     def update_spectrum_at(self, x, y):
         x += self.hdu_width // 2
@@ -224,17 +241,68 @@ class CubeChooserDialog(QtWidgets.QDialog):
         if x >= 0 and y >= 0 and x < self.hdu_width and y < self.hdu_height:
             blend = self.imageNav.getSelectionMaxRadius()
             data = self.get_blend_spectrum_at(x, y, blend)
-            if self._line is None:
-                self._static_ax.clear()
-                self._line, = self._static_ax.plot(self.ff, data, linewidth = 1)
-                self._static_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
-                self._static_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
+            self.last_preview = data
+            self.last_spectrum_max = np.max(data)
+            self.last_spectrum_min = np.min(data)
+
+            if self.preview_plot is None:
+                self.spect_ax.clear()
+                self.slice_plots  = None
+                self.preview_plot,  = self.spect_ax.plot(self.ff, data, linewidth = 1, label = 'Spectrum preview')
+                self.spect_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
+                self.spect_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
+                self.spect_ax.grid(True)
+                self.spect_ax.legend()
                 self.fig.tight_layout()
             else:
-                self._line.set_data(self.ff, data)
+                self.preview_plot.set_data(self.ff, data)
                 self.refresh_spectrum_scale()
-                self._line.figure.canvas.draw()
+                self.preview_plot.figure.canvas.draw()
+            self.overlay_slice()
 
+    def overlay_slice(self, redraw = True):
+        if self.sliceSelCheck.isChecked() and self.selected_data is not None:
+            data = self.selected_data
+            color = [1, 0, 0]
+        else:
+            data = self.last_preview
+            color = None
+
+        if data is not None:
+            centerndx      = self.selected_spectral_slice()
+            thickness      = self.selected_spectral_slice_thickness()
+            ndx_start      = centerndx - thickness // 2
+            ndx_stop       = centerndx + thickness // 2
+
+            if ndx_start < 0:
+                ndx_start  = 0
+            if ndx_stop > self.hdu_depth:
+                ndx_stop = self.hdu_depth
+
+            if self.ff[ndx_start] > self.ff[ndx_stop]:
+                ndx_start, ndx_stop = ndx_stop, ndx_start
+            
+            xdata, ydata = \
+                    [self.ff[ndx_start], self.ff[ndx_stop]],\
+                    [data[ndx_start], data[ndx_stop]]
+            
+            if self.slice_plots is None:
+                self.slice_plots = [None, None]
+                self.slice_plots[0] = self.spect_ax.scatter([xdata[0]], [ydata[0]], marker = '>', color = color, label = 'Slice start')
+                self.slice_plots[1] = self.spect_ax.scatter([xdata[1]], [ydata[1]], marker = '<', color = color, label = 'Slice end')
+                self.spect_ax.legend()
+            else:
+                # indices = np.vstack([xdata, ydata]).transpose()
+                self.slice_plots[0].set_offsets([xdata[0], ydata[0]])
+                self.slice_plots[0].set_color(color)
+
+                self.slice_plots[1].set_offsets([xdata[1], ydata[1]])
+                self.slice_plots[1].set_color(color)
+                
+                if redraw:
+                    self.refresh_spectrum_scale()
+                    self.slice_plots[0].figure.canvas.draw()
+        
     def hdrdfl(self, name, val):
         if name not in self.hdu.header:
             return val    
@@ -509,9 +577,11 @@ class CubeChooserDialog(QtWidgets.QDialog):
                 self.hdu_data.shape[3])
             
 
-        if self.hdu_depth != self.hdu_data.shape[0]:
-            self._line = None
-            self._sel  = None
+        self.preview_plot = None
+        self.last_preview = None
+        self.selected_data = None
+        self.sel_plot  = None
+        self.slice_plots = None
 
         self.hdu_depth  = self.hdu_data.shape[0]
         self.hdu_height = self.hdu_data.shape[1]
@@ -551,9 +621,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.previewStackedWidget.setCurrentIndex(0)
         self.detailStackedWidget.setCurrentIndex(0)
 
-        self._static_ax.set_xlim([self.f_min, self.f_max])
-        self._static_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
-        self._static_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
+        self.spect_ax.set_xlim([self.f_min, self.f_max])
+        self.spect_ax.set_xlabel(f'{self.f_mag} ({self.f_unit})')
+        self.spect_ax.set_ylabel(f'{self.b_mag} ({self.b_unit})')
 
         self.fig.tight_layout()
         self.refresh_spectrum_scale(True)
@@ -562,6 +632,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
             self.apply_current_img_scale()
 
         self.refresh_img_scale_info()
+        self.refresh_ui_state()
 
     def refresh_img_scale_info(self):
         min, max = self.imageNav.getCurrentLimits()
@@ -572,18 +643,18 @@ class CubeChooserDialog(QtWidgets.QDialog):
         
     def refresh_spectrum_scale(self, force_draw = False):
         if not self.autoscale:
-            self._static_ax.relim()
-            self._static_ax.set_ylim([self.hdu_abs_min, self.hdu_abs_max])
+            self.spect_ax.relim()
+            self.spect_ax.set_ylim([self.hdu_abs_min, self.hdu_abs_max])
         else:
-            self._static_ax.relim()
-            self._static_ax.autoscale_view(True, True, True)
+            self.spect_ax.relim()
+            self.spect_ax.autoscale_view(True, True, True)
 
         if force_draw:
             self.fig.canvas.draw()
 
     def set_autoscale_spectrum(self, autoscale):
         self.autoscale = autoscale
-        self._static_ax.set_autoscale_on(autoscale)
+        self.spect_ax.set_autoscale_on(autoscale)
         self.refresh_spectrum_scale(True)
 
     def load_cube(self, filename):
@@ -667,9 +738,10 @@ class CubeChooserDialog(QtWidgets.QDialog):
             self.imageNav.setBlendRadius(None)
             self.zoomNav.setBlendRadius(None)
         
-        # Force update of the selection
-        px, py = self.get_selection_center()
-        self.set_selection_spaxel(px, py)
+        if self.selected_data:
+            # Force update of the selection, if any
+            px, py = self.get_selection_center()
+            self.set_selection_spaxel(px, py)
 
         # And the spectrum
         if self.last_mov_x is not None and self.last_mov_y is not None:
@@ -691,3 +763,6 @@ class CubeChooserDialog(QtWidgets.QDialog):
         
         self.refresh_img_scale_info()
 
+
+    def on_slice_sel_toggled(self):
+        self.overlay_slice()
