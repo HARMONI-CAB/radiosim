@@ -33,11 +33,16 @@ from . import RadianceSpectrum
 import scipy.interpolate
 
 class InterpolatedSpectrum(RadianceSpectrum.RadianceSpectrum):
-    def __init__(self, file):
+    def __init__(self, file = None, response = None):
         super().__init__()
         
-        resp = np.genfromtxt(file, delimiter = ',')
-
+        if file is not None:
+            resp = np.genfromtxt(file, delimiter = ',')
+        elif response is not None:
+            resp = response
+        else:
+            raise RuntimeError('Spectrum not specified')
+        
         if resp.shape[0] == 2:
             resp = resp.transpose()
         

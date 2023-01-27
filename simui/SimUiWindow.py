@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import numpy as np
 from PyQt6 import QtCore, uic
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6 import QtWidgets
@@ -124,6 +125,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.action_Save_as.triggered.connect(self.on_save_as)
         self.action_Quit.triggered.connect(self.on_quit)
         self.action_LoadCube.triggered.connect(self.on_load_cube)
+        self.cubeChooserDialog.accepted.connect(self.on_cube_accepted)
 
     def set_instrument_svg(self, svg):
         self.instWidget.load(QtCore.QByteArray(svg.encode('utf-8')))
@@ -195,9 +197,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         button = dlg.exec()
         return button == QDialogButtonBox.StandardButton.Yes.value
 
-    def refresh_params(self):
-        gratings = self.params.get_grating_names()
-
+    def refresh_lamps(self):
         # Remove exiting lamps
         lamps = self.params.get_lamp_names()
 
@@ -213,6 +213,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.lampLayout.insertWidget(-1, widget)
             widget.changed.connect(self.on_lamp_changed)
             self.lamp_widgets[lamp] = widget
+        
+    def refresh_params(self):
+        self.refresh_lamps()
+
+        gratings = self.params.get_grating_names()
         
         # Add gratings
         self.gratingCombo.clear()
@@ -647,5 +652,51 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
     def on_load_cube(self):
         if self.cubeChooserDialog.do_open():
+            self.cubeChooserDialog.set_lamp_name(self.suggest_lamp_name())
             self.cubeChooserDialog.show()
         
+    def suggest_lamp_name(self):
+        filename = self.cubeChooserDialog.get_filename()
+        name = os.path.basename(filename)
+
+        if self.params.get_lamp(name) is not None:
+            i = 1
+            while self.params.get_lamp(name + fr' ({i})') is not None:
+                i += 1
+            name = name + fr' ({i})'
+
+        return name
+
+    def on_cube_accepted(self):
+        units, ff, data = self.cubeChooserDialog.get_selected_spectrum()
+
+        if units is not None:
+            mult = 1
+            if units.lower() == 'angstrom':
+                mult = 0.0001
+            elif units.lower() == 'nm':
+                mult = 1e-3
+            elif units.lower() != 'µm':
+                QMessageBox.warning(
+                    self,
+                    'Cannot load this spectrum',
+                    fr'The spectrum uses an unknown frequency / wavelength axis ' + \
+                    fr'unit ({units}) and therefore it cannot be used as a source.'
+                )
+                return
+            
+            ff   *= mult
+            data /= mult
+            name = self.cubeChooserDialog.get_lamp_name()
+            if len(name) == 0:
+                name = self.suggest_lamp_name()
+            
+            resp = np.array([ff, data])
+            resp[np.isnan(resp)] = 0
+
+            self.params.load_lamp(
+                name,
+                response = resp,
+                desc = 'Datacube source')
+            
+            self.refresh_lamps()

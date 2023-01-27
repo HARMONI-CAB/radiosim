@@ -35,7 +35,7 @@ from PyQt6 import QtCore, uic, QtGui
 from astropy.io import fits
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QDialog, QMessageBox, QFileDialog
+from PyQt6.QtWidgets import QDialog, QMessageBox, QFileDialog, QApplication
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
@@ -55,6 +55,12 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.imageNav.setInteractive(True)
         self.zoomNav = ImageNavWidget(self)
 
+        self.loadingBox = QMessageBox()
+        self.loadingBox.setIcon(QMessageBox.Icon.Information)
+        self.loadingBox.setText("Message box pop up window")
+        self.loadingBox.setWindowTitle("Loding data cube")
+        self.loadingBox.setStandardButtons(QMessageBox.StandardButton.Close)
+
         self.xSpinBox = QDegSpinBox(self)
         self.xSpinBox.setFormat('hms')
         self.xStackedWidget.insertWidget(1, self.xSpinBox)
@@ -73,7 +79,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.last_mov_y = None
         self.last_spectrum_max = None
         self.last_spectrum_min = None
-        
+        self.filename = 'NO CUBE'
         self.selected_data = None
         self.last_preview = None
         self.previewStackedWidget.insertWidget(0, self.imageNav)
@@ -141,9 +147,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
         self.spect_ax = static_canvas.figure.subplots()
         self.spect_ax.yaxis.set_major_formatter(FormatStrFormatter('%.3e'))
-        self.preview_plot      = None
+        self.preview_plot   = None
         self.sel_plot       = None
-        self.slice_plots     = None
+        self.slice_plots    = None
         
         self.fig.tight_layout()
 
@@ -248,7 +254,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
     def update_selection_spaxel(self, x, y, redraw = True):
         if x >= 0 and y >= 0 and x < self.hdu_width and y < self.hdu_height:
             blend = self.imageNav.getSelectionMaxRadius()
-            self.selected_data  = self.get_blend_spectrum_at(x, y, blend)
+            self.selected_data = self.get_blend_spectrum_at(x, y, blend)
+            self.selected_data[np.isnan(self.selected_data)] = 0
+
             self.refresh_ui_state()
             self.overlay_slice(False)
 
@@ -433,6 +441,21 @@ class CubeChooserDialog(QtWidgets.QDialog):
         
         spinWidget.blockSignals(blocked)
 
+    def get_freq_units(self):
+        return self.f_unit
+    
+    def set_lamp_name(self, name):
+        self.lampNameEdit.setText(name)
+    
+    def get_lamp_name(self):
+        return self.lampNameEdit.text().strip()
+    
+    def get_selected_spectrum(self):
+        if self.selected_data is None:
+            return None, None, None
+        else:
+            return self.get_freq_units(), self.ff, self.selected_data
+        
     def conv_freq_units(self, unit, f_max, *args):
         if unit == 'Hz':                
             order = np.log10(f_max)
@@ -598,9 +621,10 @@ class CubeChooserDialog(QtWidgets.QDialog):
     def set_hdu(self, hdu):
         self.hdu = hdu
         
+        QApplication.processEvents()
         self.hdu_data       = self.hdu.data
         sane = self.hdu_data[~np.isnan(self.hdu_data) & ~np.isinf(self.hdu_data)]
-
+        QApplication.processEvents()
         if len(sane) > 0:
             self.hdu_abs_min   = np.min(sane)
             self.hdu_abs_max   = np.max(sane)
@@ -614,7 +638,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
                 self.hdu_data.shape[2],
                 self.hdu_data.shape[3])
             
-
+        QApplication.processEvents()
         self.preview_plot = None
         self.last_preview = None
         self.selected_data = None
@@ -626,6 +650,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.hdu_width  = self.hdu_data.shape[2]
 
         self.extract_hdu_unit_info()
+        QApplication.processEvents()
 
         self.centralWavelengthSpin.setMinimum(self.f_min)
         self.centralWavelengthSpin.setMaximum(self.f_max)
@@ -649,7 +674,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.passBandWidthSpin.setValue(min_step)
         self.passBandWidthSpin.setSuffix(fr' {self.f_unit}')
         
+        QApplication.processEvents()
         self.refresh_hdu()
+        QApplication.processEvents()
 
         z1 = 256 / self.hdu_height
         z2 = 512 / self.hdu_width
@@ -671,6 +698,7 @@ class CubeChooserDialog(QtWidgets.QDialog):
 
         self.refresh_img_scale_info()
         self.refresh_ui_state()
+        QApplication.processEvents()
 
     def refresh_img_scale_info(self):
         min, max = self.imageNav.getCurrentLimits()
@@ -700,9 +728,14 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.refresh_spectrum_scale(True)
 
     def load_cube(self, filename):
+        self.loadingBox.setText(fr"Loading data cube from {os.path.basename(filename)}. This may take a few seconds, please wait...")
+        self.loadingBox.show()
+        QApplication.processEvents()
+
         hdul = fits.open(filename)
         self.set_hdu(hdul[0])
-        
+        self.loadingBox.hide()
+
     def set_img_mag_scale(self, baseNorm, zoom):
         # baseNorm is the relative base level of the image, with the following
         # interpretation:
@@ -732,6 +765,8 @@ class CubeChooserDialog(QtWidgets.QDialog):
             'Load configuration',
             filter = 'FITS data cubes (*.fits);;All files (*)')
         
+        self.filename = name
+
         if len(name) == 0:
             return False
 
@@ -743,6 +778,31 @@ class CubeChooserDialog(QtWidgets.QDialog):
             return False
             
         return True
+    
+    def get_filename(self):
+        return self.filename
+    
+    def resizeEvent(self, a0: QtGui.QResizeEvent) -> None:
+        ret = super().resizeEvent(a0)
+
+        self.preview_plot   = None
+        self.sel_plot       = None
+        self.slice_plots    = None
+        self.spect_ax.clear()
+        if self.last_preview is not None:
+            x = self.last_mov_x
+            y = self.last_mov_y
+            self.update_spectrum_at(int(np.floor(x)), int(np.floor(y)))
+
+        if self.selected_data is not None:
+            px, py = self.get_selection_center()
+            self.set_selection_spaxel(px, py)
+
+        self.spect_ax.set_ylabel(self.getYAxisName())
+        self.spect_ax.grid(True)
+        self.refresh_spectrum_scale(True)
+
+        return ret
 
 ################################ Slots ########################################
     def on_load_cube(self):

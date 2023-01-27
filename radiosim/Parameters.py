@@ -122,9 +122,12 @@ class Parameters():
 
         return self.spect_types[type][1][spec]
     
-    def load_lamp(self, name, path, rating = None, desc = None):
-        full_path = self.resolve_data_file(path)
-        spectrum = InterpolatedSpectrum(full_path)
+    def load_lamp(self, name, path = None, rating = None, desc = None, response = None):
+        if path is not None:
+            full_path = self.resolve_data_file(path)
+            spectrum = InterpolatedSpectrum(full_path)
+        else:
+            spectrum = InterpolatedSpectrum(response = response)
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
