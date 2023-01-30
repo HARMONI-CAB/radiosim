@@ -1,5 +1,8 @@
+astropy==5.1
+graphviz==0.20.1
 matplotlib==3.5.2
 numpy==1.21.5
-PyQt6==6.4.0
+parse==1.19.0
+PyQt6==6.4.1
 PyYAML==6.0
 scipy==1.7.3
