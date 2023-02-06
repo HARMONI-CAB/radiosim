@@ -50,9 +50,21 @@ class InterpolatedResponse(StageResponse.StageResponse):
             bounds_error = False,
             fill_value = 0.)
     
+        self.exp = 1
+
+    def set_multiplicity(self, exp):
+        self.exp = exp
+
     def get_t(self, wl):
         # Numpy horrors
-        return self.interpolator(wl).ravel()[0]
+        if self.exp == 1:
+            return self.interpolator(wl).ravel()[0]
+        else:
+            return (self.interpolator(wl).ravel()[0]) ** self.exp
 
     def get_t_matrix(self, wl):
-        return self.interpolator(wl)
+        if self.exp == 1:
+            return self.interpolator(wl)
+        else:
+            return self.interpolator(wl) ** self.exp
+        

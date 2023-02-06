@@ -155,8 +155,9 @@ class SimulationConfig(SerializableConfig):
         self.lamps         = {}
         self.lamp_configs  = {}
 
-        self.detector      = DetectorConfig()
-
+        self.detector        = DetectorConfig()
+        self.is_coating      = 'SPECTRALON'
+        self.is_bounces      = 1
         self.binning         = 1
         self.lambda_sampling = 2.2
         self.grating         = 'VIS'
@@ -187,6 +188,8 @@ class SimulationConfig(SerializableConfig):
     
     def save(self):
         self.save_param("lambda_sampling")
+        self.save_param("is_coating")
+        self.save_param("is_bounces")
         self.save_param("binning")
         self.save_param('grating')
         self.save_param('aomode')

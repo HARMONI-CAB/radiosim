@@ -103,6 +103,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.spectClearAllbuton.clicked.connect(self.on_plot_clear)
 
         self.spectTypeCombo.activated.connect(self.on_spect_type_changed)
+        self.isCoatingCombo.activated.connect(self.on_state_widget_changed)
+        self.isEffectiveBouncesSpin.valueChanged.connect(self.on_state_widget_changed)
 
         self.tExpPlotButton.clicked.connect(self.plotTexp)
         self.tExpOverlayButton.clicked.connect(self.overlayTexp)
@@ -219,6 +221,17 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         gratings = self.params.get_grating_names()
         
+        # Add IS coatings
+        self.isCoatingCombo.clear()
+        self.isCoatingCombo.addItem('Fully reflective', userData = None)
+
+        for coating in self.params.get_coatings():
+            desc = self.params.get_coating_desc(coating)
+            self.isCoatingCombo.addItem(desc, userData = coating)
+
+        if self.isCoatingCombo.currentIndex() == -1:
+            self.isCoatingCombo.setCurrentIndex(0)
+        
         # Add gratings
         self.gratingCombo.clear()
         self.gratingCombo.addItems(gratings)
@@ -298,7 +311,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.update_title()
         self.refresh_spect_ui_state()
         self.refresh_exp_time_ui_state()
-        
+        self.isEffectiveBouncesSpin.setEnabled(self.isCoatingCombo.currentIndex() > 0)
+
     def set_grating(self, grating_name):
         if grating_name is None:
             grating_name = "VIS"
@@ -428,6 +442,30 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpParamBox.setEnabled(lampsOn)
         self.tExpControlBox.setEnabled(lampsOn)
 
+    def set_coating(self, coating):
+        index = -1
+
+        if coating is not None:
+            for i in range(1, self.isCoatingCombo.count()):
+                key = self.isCoatingCombo.itemData(i)
+                if key == coating:
+                    index = i
+                    break
+
+            if index == -1:
+                QMessageBox.warning(
+                    self, 
+                    fr'Integrating sphere coating `{coating}` is not supported. ' +
+                    fr'Assuming fully reflective material for now.')
+                coating = None
+            
+        if index == -1:
+            self.isCoatingCombo.setCurrentIndex(0)
+            self.isEffectiveBouncesSpin.setEnabled(False)
+        else:
+            self.isCoatingCombo.setCurrentIndex(index)
+            self.isEffectiveBouncesSpin.setEnabled(True)
+            
     def set_config(self, config):
         try:
             for lamp in config.lamps.keys():
@@ -436,12 +474,14 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.lambdaSamplingSpin.setValue(config.lambda_sampling)
             self.binningSpin.setValue(config.binning)
 
+            self.set_coating(config.is_coating)
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
             self.set_scale(config.scale)
 
             self.set_detector_config(config.detector)
 
+            self.isEffectiveBouncesSpin.setValue(config.is_bounces)
             self.expTimeSpin.setValue(config.t_exp)
             self.satLevelSpin.setValue(config.saturation)
             self.tempSpin.setValue(config.temperature - 273.15)
@@ -491,6 +531,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for lamp in self.lamp_widgets.keys():
             config.set_lamp_config(lamp, self.lamp_widgets[lamp].get_config())
         
+        config.is_coating      = self.isCoatingCombo.currentData()
+        config.is_bounces      = self.isEffectiveBouncesSpin.value()
         config.lambda_sampling = self.lambdaSamplingSpin.value()
         config.binning         = self.binningSpin.value()
         config.grating         = self.gratingCombo.currentText()

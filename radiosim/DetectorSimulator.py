@@ -223,6 +223,8 @@ class DetectorSimulator:
     def electronsPerPixel(self, wl = None, nu = None, t = 1, disable_noise = False):
         e = t * self.electronRatePerPixel(wl, nu)
 
+        e[np.where(e < 0)] = 0
+
         if self.poisson and not disable_noise:
             e = self.rng.poisson(lam = e)
         

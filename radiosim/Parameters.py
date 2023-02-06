@@ -33,6 +33,7 @@ from .InterpolatedSpectrum import InterpolatedSpectrum
 from .InterpolatedResponse import InterpolatedResponse
 from .BlackBodySpectrum    import BlackBodySpectrum
 from .CompoundResponse     import CompoundResponse
+from .LineSpectrum         import LineSpectrum
 
 RADIOSIM_RELATIVE_DATA_DIR = '../data'
 HARMONI_FINEST_SPAXEL_SIZE = 4.14    # mas
@@ -43,16 +44,20 @@ HARMONI_PX_AREA            = HARMONI_PIXEL_SIZE * HARMONI_PIXEL_SIZE
 
 class Parameters():
     def __init__(self):
-        self.stages     = {}
-        self.lamps      = {}
-        self.filters    = {}
-        self.equalizers = {}
-        self.gratings   = {}
-        self.scales     = {}
+        self.stages      = {}
+        self.lamps       = {}
+        self.filters     = {}
+        self.is_coatings = {}
+        self.equalizers  = {}
+        self.gratings    = {}
+        self.scales      = {}
 
         self.finest_spaxel_size_mas = HARMONI_FINEST_SPAXEL_SIZE
         self.pixel_size             = HARMONI_PIXEL_SIZE
 
+        self.load_coating('SPECTRALON',   "LabSphere's Spectralon®",   't-spectralon.csv')
+        self.load_coating('SPECTRAFLECT', "LabSphere's Spectraflect®", 't-spectraflect.csv')
+        self.load_coating('DIFFGOLD',     "LabSphere's Infragold®",    't-diffuse-gold.csv')
 
         self.load_stage('Cryostat',      't-cryostat.csv')
         self.load_stage('Detector',      't-detector.csv')
@@ -83,12 +88,22 @@ class Parameters():
             self.transmission_types[stage] = (stage, 'fraction')
         
         self.spect_types = {
-            'is_out'       : ('Integrating sphere output', self.is_spect_types),
+            'is_out'       : ('Integrating sphere input', self.is_spect_types),
             'detector'     : ('Detector', self.ccd_spect_types),
             'transmission' : ('Total transmission spectrum', self.transmission_types),
         }
 
     
+    def load_coating(self, key, desc, file):
+        self.load_stage(key, file)
+        self.is_coatings[key] = desc
+    
+    def get_coatings(self):
+        return self.is_coatings.keys()
+    
+    def get_coating_desc(self, key):
+        return self.is_coatings[key]
+
     def resolve_data_file(self, path):
         if len(path) == 0:
             raise RuntimeError('Path is empty')
@@ -132,6 +147,14 @@ class Parameters():
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
         self.lamps[name] = (spectrum, desc)
+
+    def add_line_lamp(self, name, F, desc = None, T = 1000, rating = None, frel_c = 0):
+        spectrum = LineSpectrum(F, T, frel_c)
+
+        if rating is not None:
+            spectrum.set_nominal_power_rating(rating)
+        self.lamps[name] = (spectrum, desc)
+        return spectrum
 
     def load_black_body_lamp(self, name, T, rating = None, desc = None):
         spectrum = BlackBodySpectrum(T)
@@ -243,12 +266,17 @@ class Parameters():
     def get_ao_mode_names(self):
         return ['NOAO', 'SCAO', 'LTAO']
     
-    def make_response(self, grating, ao):
+    def make_response(self, grating, ao, is_coating = None, is_bounces = 1):
         response = CompoundResponse()
         response.set_label('Instrument response')
         ao       = ao.upper()
         grating  = grating.upper()
 
+        if is_coating is not None:
+            stage = self.get_stage(is_coating)
+            stage.set_multiplicity(is_bounces)
+            response.push_back(stage)
+        
         if ao == "SCAO":
             response.push_back(self.get_stage("SCAO Dichroic"))
         elif ao == "LTAO":
@@ -277,11 +305,216 @@ class Parameters():
 
         return response
 
+    def add_arc_lamps(self):
+        # The flux of this lamps is derived from the typical spectra of
+        # Oriel Instrument's calibration lamps. We see that they usually
+        # peak at 10 µW / (cm² nm) = 1e8 W / (m² m). 
+        #
+        # We arbitratly set the line width to 1 nm until we have a better
+        # approximation.
+
+        arbitrary_line_width = 1e-9 # m
+        arbitrary_peak_flux_density  = 1e8 # W / (m² m)
+        pF = arbitrary_peak_flux_density * arbitrary_line_width
+        fc = 1e-1 # Dimensionless
+
+        Hg_lamp = self.add_line_lamp("Hg", pF, "Mercury arc lamp", frel_c = fc)
+        Ne_lamp = self.add_line_lamp("Ne", pF, "Neon arc lamp", frel_c = fc)
+        Ar_lamp = self.add_line_lamp("Ar", pF, "Argon arc lamp", frel_c = fc)
+        Kr_lamp = self.add_line_lamp("Kr", pF, "Kripton arc lamp", frel_c = fc)
+        Xe_lamp = self.add_line_lamp("Xe", pF, "Xenon arc lamp", frel_c = fc)
+
+        Ar_lamp.add_line(0.472819,     23442, 40)
+        Ar_lamp.add_line(0.473723,      1000, 40)
+        Ar_lamp.add_line(0.476620,      2344, 40)
+        Ar_lamp.add_line(0.480736,      1820, 40)
+        Ar_lamp.add_line(0.488123,      2239, 40)
+        Ar_lamp.add_line(0.611662,       537, 40)
+        Ar_lamp.add_line(0.617399,       407, 40)
+        Ar_lamp.add_line(0.664553,       269, 40)
+        Ar_lamp.add_line(0.763721,     25000, 40)
+        Ar_lamp.add_line(0.795036,     20000, 40)
+        Ar_lamp.add_line(0.801699,     25000, 40)
+        Ar_lamp.add_line(0.810592,     20000, 40)
+        Ar_lamp.add_line(0.811754,     35000, 40)
+        Ar_lamp.add_line(0.826679,     10000, 40)
+        Ar_lamp.add_line(0.841052,     15000, 40)
+        Ar_lamp.add_line(0.842696,     20000, 40)
+        Ar_lamp.add_line(0.852378,     15000, 40)
+        Ar_lamp.add_line(0.912547,     35000, 40)
+        Ar_lamp.add_line(1.067649,       200, 40)
+        Ar_lamp.add_line(1.167190,       200, 40)
+        Ar_lamp.add_line(1.211564,       200, 40)
+        Ar_lamp.add_line(1.214306,        50, 40)
+        Ar_lamp.add_line(1.234677,        50, 40)
+        Ar_lamp.add_line(1.240622,       200, 40)
+        Ar_lamp.add_line(1.244272,       200, 40)
+        Ar_lamp.add_line(1.245953,       100, 40)
+        Ar_lamp.add_line(1.249108,       200, 40)
+        Ar_lamp.add_line(1.270576,       150, 40)
+        Ar_lamp.add_line(1.280624,       200, 40)
+        Ar_lamp.add_line(1.293673,        50, 40)
+        Ar_lamp.add_line(1.296020,       500, 40)
+        Ar_lamp.add_line(1.301182,       200, 40)
+        Ar_lamp.add_line(1.323452,       100, 40)
+        Ar_lamp.add_line(1.327627,       500, 40)
+        Ar_lamp.add_line(1.331685,      1000, 40)
+        Ar_lamp.add_line(1.350788,      1000, 40)
+        Ar_lamp.add_line(1.360305,        30, 40)
+        Ar_lamp.add_line(1.362638,       400, 40)
+        Ar_lamp.add_line(1.368229,       200, 40)
+        Ar_lamp.add_line(1.382950,        10, 40)
+        Ar_lamp.add_line(1.409749,       200, 40)
+        Ar_lamp.add_line(1.505061,       100, 40)
+        Ar_lamp.add_line(1.599386,        30, 40)
+        Ar_lamp.add_line(1.694521,       500, 40)
+        Hg_lamp.add_line(0.546227,      6000, 200.59)
+        Hg_lamp.add_line(0.577121,      1000, 200.59)
+        Hg_lamp.add_line(0.579228,       900, 200.59)
+        Hg_lamp.add_line(1.014253,      1600, 200.59)
+        Hg_lamp.add_line(1.129020,      1000, 200.59)
+        Hg_lamp.add_line(1.213180,         5, 200.59)
+        Hg_lamp.add_line(1.321356,       400, 200.59)
+        Hg_lamp.add_line(1.343024,       400, 200.59)
+        Hg_lamp.add_line(1.347206,       130, 200.59)
+        Hg_lamp.add_line(1.350927,       200, 200.59)
+        Hg_lamp.add_line(1.357392,       200, 200.59)
+        Hg_lamp.add_line(1.367725,       300, 200.59)
+        Hg_lamp.add_line(1.395436,       200, 200.59)
+        Hg_lamp.add_line(1.530000,       600, 200.59)
+        Kr_lamp.add_line(0.760364,  27320000, 83.8)
+        Kr_lamp.add_line(0.785698,  20410000, 83.8)
+        Kr_lamp.add_line(0.793078,   7700000, 83.8)
+        Kr_lamp.add_line(0.806172,  15830000, 83.8)
+        Kr_lamp.add_line(0.810625,   6520000, 83.8)
+        Kr_lamp.add_line(0.810659,   8960000, 83.8)
+        Kr_lamp.add_line(0.811513,  36100000, 83.8)
+        Kr_lamp.add_line(0.819231,   8940000, 83.8)
+        Kr_lamp.add_line(0.826551,  34160000, 83.8)
+        Kr_lamp.add_line(0.828333,  14180000, 83.8)
+        Kr_lamp.add_line(0.830039,  29310000, 83.8)
+        Kr_lamp.add_line(0.851121,  18110000, 83.8)
+        Kr_lamp.add_line(0.877916,  22170000, 83.8)
+        Kr_lamp.add_line(0.893114,  22890000, 83.8)
+        Kr_lamp.add_line(1.182261,   8110000, 83.8)
+        Kr_lamp.add_line(1.318101,   4900000, 83.8)
+        Kr_lamp.add_line(1.324431,   3180000, 83.8)
+        Kr_lamp.add_line(1.362614,   4970000, 83.8)
+        Kr_lamp.add_line(1.363795,  10300000, 83.8)
+        Kr_lamp.add_line(1.383666,   3120000, 83.8)
+        Kr_lamp.add_line(1.388665,  10600000, 83.8)
+        Kr_lamp.add_line(1.394281,  11000000, 83.8)
+        Kr_lamp.add_line(1.443074,   9300000, 83.8)
+        Kr_lamp.add_line(1.473847,   2810000, 83.8)
+        Kr_lamp.add_line(1.524379,   3960000, 83.8)
+        Kr_lamp.add_line(1.537624,   1470000, 83.8)
+        Kr_lamp.add_line(1.678972,   6760000, 83.8)
+        Kr_lamp.add_line(1.685810,   1300000, 83.8)
+        Kr_lamp.add_line(1.689507,   7680000, 83.8)
+        Kr_lamp.add_line(1.694044,   5770000, 83.8)
+        Ne_lamp.add_line(0.609785,      3000, 20.18)
+        Ne_lamp.add_line(0.614476,     10000, 20.18)
+        Ne_lamp.add_line(0.633618,     10000, 20.18)
+        Ne_lamp.add_line(0.638476,     10000, 20.18)
+        Ne_lamp.add_line(0.640402,     20000, 20.18)
+        Ne_lamp.add_line(0.650833,     15000, 20.18)
+        Ne_lamp.add_line(0.668012,      5000, 20.18)
+        Ne_lamp.add_line(0.693138,    100000, 20.18)
+        Ne_lamp.add_line(0.703435,     85000, 20.18)
+        Ne_lamp.add_line(0.749093,     32000, 20.18)
+        Ne_lamp.add_line(0.753785,     28000, 20.18)
+        Ne_lamp.add_line(0.813864,     17000, 20.18)
+        Ne_lamp.add_line(0.830261,     29000, 20.18)
+        Ne_lamp.add_line(0.837991,     76000, 20.18)
+        Ne_lamp.add_line(0.842074,     26000, 20.18)
+        Ne_lamp.add_line(0.849769,     69000, 20.18)
+        Ne_lamp.add_line(0.859362,     41000, 20.18)
+        Ne_lamp.add_line(0.863702,     35000, 20.18)
+        Ne_lamp.add_line(0.865676,     64000, 20.18)
+        Ne_lamp.add_line(0.868188,     13000, 20.18)
+        Ne_lamp.add_line(0.868431,     15000, 20.18)
+        Ne_lamp.add_line(0.877407,     10000, 20.18)
+        Ne_lamp.add_line(0.878303,     57000, 20.18)
+        Ne_lamp.add_line(0.878617,     43000, 20.18)
+        Ne_lamp.add_line(0.885630,     27000, 20.18)
+        Ne_lamp.add_line(0.886819,     15000, 20.18)
+        Ne_lamp.add_line(0.915118,     12000, 20.18)
+        Ne_lamp.add_line(1.056530,      8000, 20.18)
+        Ne_lamp.add_line(1.114607,     26000, 20.18)
+        Ne_lamp.add_line(1.118059,     49000, 20.18)
+        Ne_lamp.add_line(1.152590,     33000, 20.18)
+        Ne_lamp.add_line(1.152818,     17000, 20.18)
+        Ne_lamp.add_line(1.153950,      9100, 20.18)
+        Ne_lamp.add_line(1.177001,     15000, 20.18)
+        Ne_lamp.add_line(1.206964,     23000, 20.18)
+        Ne_lamp.add_line(1.499041,       530, 20.18)
+        Ne_lamp.add_line(1.507829,       140, 20.18)
+        Ne_lamp.add_line(1.514424,       350, 20.18)
+        Ne_lamp.add_line(1.519508,       270, 20.18)
+        Ne_lamp.add_line(1.535238,       160, 20.18)
+        Ne_lamp.add_line(1.541180,       250, 20.18)
+        Ne_lamp.add_line(2.104701,      2700, 20.18)
+        Ne_lamp.add_line(2.171404,      2900, 20.18)
+        Ne_lamp.add_line(2.225343,      1300, 20.18)
+        Ne_lamp.add_line(2.243426,      1300, 20.18)
+        Ne_lamp.add_line(2.247292,       540, 20.18)
+        Ne_lamp.add_line(2.253653,      8500, 20.18)
+        Ne_lamp.add_line(2.266797,      1300, 20.18)
+        Ne_lamp.add_line(2.269396,       210, 20.18)
+        Ne_lamp.add_line(2.310678,      2500, 20.18)
+        Ne_lamp.add_line(2.326662,      3800, 20.18)
+        Ne_lamp.add_line(2.337934,      5000, 20.18)
+        Ne_lamp.add_line(2.357176,      3400, 20.18)
+        Ne_lamp.add_line(2.364293,     17000, 20.18)
+        Ne_lamp.add_line(2.370813,      1200, 20.18)
+        Ne_lamp.add_line(2.371560,      5900, 20.18)
+        Ne_lamp.add_line(2.391854,       170, 20.18)
+        Ne_lamp.add_line(2.395793,     11000, 20.18)
+        Ne_lamp.add_line(2.396296,      4600, 20.18)
+        Ne_lamp.add_line(2.397837,       220, 20.18)
+        Ne_lamp.add_line(2.398470,      6000, 20.18)
+        Ne_lamp.add_line(2.409353,       200, 20.18)
+        Ne_lamp.add_line(2.410515,      1100, 20.18)
+        Ne_lamp.add_line(2.415649,       210, 20.18)
+        Ne_lamp.add_line(2.416802,      2000, 20.18)
+        Ne_lamp.add_line(2.425622,      2800, 20.18)
+        Ne_lamp.add_line(2.437166,      7400, 20.18)
+        Ne_lamp.add_line(2.437826,      3800, 20.18)
+        Ne_lamp.add_line(2.439001,       360, 20.18)
+        Ne_lamp.add_line(2.445453,      1900, 20.18)
+        Ne_lamp.add_line(2.445978,       240, 20.18)
+        Ne_lamp.add_line(2.446607,      3300, 20.18)
+        Ne_lamp.add_line(2.447161,       370, 20.18)
+        Xe_lamp.add_line(0.712156,       500, 131.3)
+        Xe_lamp.add_line(0.764413,       500, 131.3)
+        Xe_lamp.add_line(0.820859,       700, 131.3)
+        Xe_lamp.add_line(0.826879,       500, 131.3)
+        Xe_lamp.add_line(0.828239,      7000, 131.3)
+        Xe_lamp.add_line(0.834912,      2000, 131.3)
+        Xe_lamp.add_line(0.882183,      5000, 131.3)
+        Xe_lamp.add_line(0.893328,       200, 131.3)
+        Xe_lamp.add_line(0.895471,      1000, 131.3)
+        Xe_lamp.add_line(0.904793,       400, 131.3)
+        Xe_lamp.add_line(0.916517,       500, 131.3)
+        Xe_lamp.add_line(0.980238,      2000, 131.3)
+        Xe_lamp.add_line(0.992592,      3000, 131.3)
+        Xe_lamp.add_line(1.262685,         5, 131.3)
+        Xe_lamp.add_line(1.366021,       150, 131.3)
+        Xe_lamp.add_line(1.414596,        80, 131.3)
+        Xe_lamp.add_line(1.473641,       200, 131.3)
+        Xe_lamp.add_line(1.542222,       110, 131.3)
+        Xe_lamp.add_line(1.605641,        50, 131.3)
+        Xe_lamp.add_line(1.673273,      5000, 131.3)
+        Xe_lamp.add_line(2.026777,      2300, 131.3)
+
+
     def load_defaults(self):
         # Load lamps
-        self.load_lamp("150W",   "lamp-spectrum.csv", 2 * 150, "2x150 W continuum lamp with adjustable power")
-        self.load_lamp("NORMAL", "lamp-spectrum-2.csv", desc = "Continuum lamp with fixed radiance")
+        self.load_lamp("150W",     "lamp-spectrum.csv", 2 * 150, "2x150 W continuum lamp with adjustable power")
+        self.load_lamp("Arc lamp", "lamp-line-spectrum.csv", 100, "100 W arc lamp for line calibration")
         self.load_black_body_lamp("PLANK",  5700, desc = "Theoretical black body emission at 5700 K")
+
+        self.add_arc_lamps()
 
         # Load passband filters for the different gratings
         self.load_filter("H (high)",  "t-h-high.csv")

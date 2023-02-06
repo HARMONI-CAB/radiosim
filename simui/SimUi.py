@@ -138,9 +138,7 @@ class SimUI(QObject):
             edge [fontname="Helvetica", color="#505050", constaint=false];
         '''
 
-        response   = self.params.make_response(
-            grating = self.config.grating, 
-            ao = self.config.aomode)
+        response   = self.make_current_response()
         lamp_nodes = []
         count = 0
 
@@ -172,6 +170,13 @@ class SimUI(QObject):
 
         self.window.set_instrument_svg(data.getvalue())
         
+    def make_current_response(self):
+        return self.params.make_response(
+            grating = self.config.grating, 
+            ao = self.config.aomode,
+            is_coating = self.config.is_coating,
+            is_bounces = self.config.is_bounces)
+
     def simulate_spectrum(self):
         self.config = self.window.get_config()
         self.refresh_instrument_graph()
@@ -180,9 +185,7 @@ class SimUI(QObject):
         self.y_axis_name, self.y_axis_units = self.window.get_y_axis_selection()
 
         # Initialize optical train
-        response = self.params.make_response(
-            grating = self.config.grating, 
-            ao = self.config.aomode)
+        response = self.make_current_response()
 
         # Initialize spectrum
         overlapped = radiosim.OverlappedSpectrum()
