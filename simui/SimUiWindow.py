@@ -388,6 +388,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         if spect is None:
             return None
         desc, units = self.params.get_spectrum_desc_for_type(type, spect)
+        _, xunits = self.get_x_axis_selection()
+
+        # Necessary for densities
+        units = units.replace('ν⁻¹', fr'{xunits}⁻¹')
         return desc, units
     
     def get_x_axis_selection(self):
@@ -465,7 +469,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         else:
             self.isCoatingCombo.setCurrentIndex(index)
             self.isEffectiveBouncesSpin.setEnabled(True)
-            
+
     def set_config(self, config):
         try:
             for lamp in config.lamps.keys():

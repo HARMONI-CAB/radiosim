@@ -240,10 +240,12 @@ class SimUI(QObject):
         if self.config.x_axis == 'frequency':
             nu = np.linspace(SPEED_OF_LIGHT / lambda_max, SPEED_OF_LIGHT / lambda_min, 1000)
             wl = None
+            K = 1e-12 # Hz per THz
             x  = nu * 1e12 # In THz
         else:
             wl = np.linspace(lambda_min, lambda_max, 1000)
             nu = None
+            K  = 1e-6 # m per µm
             x  = wl * 1e6 # In µm
 
         # Decide what to paint
@@ -254,17 +256,17 @@ class SimUI(QObject):
         if type == 'is_out':
             label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
-                y = self.det.get_E(wl = wl, nu = nu, atten = False)
+                y = K * self.det.get_E(wl = wl, nu = nu, atten = False)
             elif y_axis == 'photon_F':
-                y = self.det.get_photon_flux(wl, nu, atten = False)
+                y = K * self.det.get_photon_flux(wl, nu, atten = False)
             else:
                 raise Exception(fr'Invalid quantity {type}:{y_axis}')
         elif type == 'detector':
             label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
-                y = self.det.get_E(wl = wl, nu = nu, atten = True)
+                y = K * self.det.get_E(wl = wl, nu = nu, atten = True)
             elif y_axis == 'photon_F':
-                y = self.det.get_photon_flux(wl, nu, atten = True)
+                y = K * self.det.get_photon_flux(wl, nu, atten = True)
             elif y_axis == 'dedt_Px':
                 y = self.det.electronRatePerPixel(wl = wl, nu = nu)
             elif y_axis == 'electrons':
