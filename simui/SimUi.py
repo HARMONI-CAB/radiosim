@@ -137,7 +137,6 @@ class SimUI(QObject):
     def get_graphviz(self):
         graph = '''
         digraph {
-	        // rankdir=LR;
             rotate=90;
 	        node [style=filled, color="#505050", fillcolor=white, fontname="Helvetica", fontsize = 12];
             edge [fontname="Helvetica", color="#505050", constaint=false];
@@ -158,11 +157,19 @@ class SimUI(QObject):
                 fillcolor = fr'#{intensity:02x}{intensity:02x}00'
                 graph += f'{lamp_node} [shape=ellipse, fillcolor="{fillcolor}", label=<<b><font color="{color}">{lamp}</font></b>>];\n'
 
+        coating = self.get_selected_coating()
+        color = coating._color
+
+        html   = f'Integrating Sphere\n{coating._name}'
+        graph += f'IS [shape=circle, fillcolor="white:{color}", gradientangle=0, style=radial, label = "{html}"];\n'
+        
         graph += response.get_graphviz()
 
         for lamp in lamp_nodes:
-            graph += f'  {lamp} -> {response.get_entrance_node_name()};\n'
+            graph += f'  {lamp} -> IS;\n'
         
+        graph += f'  IS -> {response.get_entrance_node_name()};\n'
+
         graph += '}'
 
         return graph
@@ -180,6 +187,16 @@ class SimUI(QObject):
             grating = self.config.grating, 
             ao = self.config.aomode)
 
+    def get_selected_coating(self):
+        # Initialize integrating sphere
+        if self.config.is_coating is not None:
+            coating = self.params.get_stage(self.config.is_coating)
+        else:
+            coating = radiosim.AllPassResponse()
+            coating.set_label("Ideal reflector")
+        
+        return coating
+
     def simulate_spectrum(self):
         self.config = self.window.get_config()
         self.refresh_instrument_graph()
@@ -189,12 +206,7 @@ class SimUI(QObject):
 
         # Initialize optical train
         response = self.make_current_response()
-
-        # Initialize integrating sphere
-        if self.config.is_coating is not None:
-            coating = self.params.get_stage(self.config.is_coating)
-        else:
-            coating = radiosim.AllPassResponse()
+        coating  = self.get_selected_coating()
 
         sphere  = radiosim.ISRadianceSpectrum(
             self.config.is_radius, 
