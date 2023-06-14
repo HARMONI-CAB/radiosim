@@ -116,14 +116,16 @@ class LampConfig(SerializableConfig):
     def __init__(self):
         super().__init__()
         
-        self.is_on = False
-        self.power  = None
-        self.attenuation = 0
+        self.is_on             = False
+        self.power             = None
+        self.attenuation       = 0
+        self.effective_area    = 8e-5
 
     def save(self):
         self.save_param('is_on')
         self.save_param('power')
         self.save_param('attenuation')
+        self.save_param('effective_area')
 
     def load(self, dict):
         self.load_all(dict)
@@ -136,14 +138,12 @@ class DetectorConfig(SerializableConfig):
         self.ron        = 5
         self.QE         = .95
         self.pixel_size = HARMONI_PIXEL_SIZE
-        self.f          = 17.757
 
     def save(self):
         self.save_param('G')
         self.save_param('ron')
         self.save_param('QE')
         self.save_param('pixel_size')
-        self.save_param('f')
 
     def load(self, dict):
         self.load_all(dict)
@@ -156,8 +156,11 @@ class SimulationConfig(SerializableConfig):
         self.lamp_configs  = {}
 
         self.detector        = DetectorConfig()
+        self.is_radius       = 1e-1
+        self.is_aperture     = .5e-1
         self.is_coating      = 'SPECTRALON'
-        self.is_bounces      = 1
+        self.offner_f        = 17.37 # See CALIBRATION UNIT RELAY OPTICAL DESIGN
+
         self.binning         = 1
         self.lambda_sampling = 2.2
         self.grating         = 'VIS'
@@ -188,8 +191,12 @@ class SimulationConfig(SerializableConfig):
     
     def save(self):
         self.save_param("lambda_sampling")
+        
         self.save_param("is_coating")
-        self.save_param("is_bounces")
+        self.save_param("is_radius")
+        self.save_param("is_aperture")
+        self.save_param("offner_f")
+        
         self.save_param("binning")
         self.save_param('grating')
         self.save_param('aomode')

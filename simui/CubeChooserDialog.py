@@ -700,6 +700,9 @@ class CubeChooserDialog(QtWidgets.QDialog):
         self.refresh_ui_state()
         QApplication.processEvents()
 
+    def get_base_unit(self):
+        return self.b_unit
+    
     def refresh_img_scale_info(self):
         min, max = self.imageNav.getCurrentLimits()
         self.unitsLabel.setText(fr'<b>{self.b_unit}</b>')

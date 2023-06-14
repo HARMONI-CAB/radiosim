@@ -29,44 +29,15 @@
 #
 
 import numpy as np
+from . import StageResponse
 
-from . import RadianceSpectrum
-
-class OverlappedSpectrum(RadianceSpectrum):
+class AllPassResponse(StageResponse):
     def __init__(self):
         super().__init__()
 
-        self.sourceSpectrums   = []
-        self.max_wl            = -1
+    def get_t(self, wl):
+        return 1
 
-    def push_spectrum(self, spectrum):
-        self.max_wl = -1
-        self.sourceSpectrums.append(spectrum)
-    
-    def set_fnum(self, fnum):
-        super().set_fnum(fnum)
-
-        for spectrum in self.sourceSpectrums:
-            spectrum.set_fnum(fnum)
-    
-    # TODO: take emissivity of each intermediate filter into account
-    def get_I(self, wl):
-        result = 0
-        for spectrum in self.sourceSpectrums:
-            result += spectrum.get_I(wl)
-
-        return result
-
-    def get_I_matrix(self, wl):
-        result = np.zeros(wl.shape)
-        for spectrum in self.sourceSpectrums:
-            result += spectrum.get_I_matrix(wl)
-
-        return result
-
-    def get_max_wl(self):
-        return -1
-
-    def get_max_nu(self):
-        return -1
-
+    def get_t_matrix(self, wl):
+        return np.ones(wl.shape)
+        

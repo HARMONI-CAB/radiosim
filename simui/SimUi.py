@@ -43,7 +43,12 @@ from radiosim import SPEED_OF_LIGHT
 from radiosim.Parameters import \
     HARMONI_FINEST_SPAXEL_SIZE, HARMONI_PX_PER_SP_ALONG, \
     HARMONI_PX_PER_SP_ACROSS, HARMONI_PX_AREA
-import radiosim.AttenuatedSpectrum, radiosim.OverlappedSpectrum
+
+import radiosim.AllPassResponse
+import radiosim.PowerSpectrum
+import radiosim.AttenuatedSpectrum
+import radiosim.ISRadianceSpectrum
+import radiosim.IsotropicRadiatorSpectrum
 
 class SimUI(QObject):
     def __init__(self, *args, **kwargs):
@@ -173,9 +178,7 @@ class SimUI(QObject):
     def make_current_response(self):
         return self.params.make_response(
             grating = self.config.grating, 
-            ao = self.config.aomode,
-            is_coating = self.config.is_coating,
-            is_bounces = self.config.is_bounces)
+            ao = self.config.aomode)
 
     def simulate_spectrum(self):
         self.config = self.window.get_config()
@@ -187,8 +190,16 @@ class SimUI(QObject):
         # Initialize optical train
         response = self.make_current_response()
 
-        # Initialize spectrum
-        overlapped = radiosim.OverlappedSpectrum()
+        # Initialize integrating sphere
+        if self.config.is_coating is not None:
+            coating = self.params.get_stage(self.config.is_coating)
+        else:
+            coating = radiosim.AllPassResponse()
+
+        sphere  = radiosim.ISRadianceSpectrum(
+            self.config.is_radius, 
+            .25 * np.pi * self.config.is_aperture ** 2,
+            coating)
         
         # Spectrum coming from all lamps
         self.lamp_text = ''
@@ -200,16 +211,29 @@ class SimUI(QObject):
                 self.lamp_text += lamp
                 
                 lamp_spectrum = self.params.get_lamp(lamp)
-                atten_spectrum = radiosim.AttenuatedSpectrum(lamp_spectrum)
-                
+
+                # Power defined source: defined "as-is"
+                if issubclass(type(lamp_spectrum), radiosim.PowerSpectrum):
+                    lamp_radiator = lamp_spectrum
+                else:
+                    # Radiance-defined source: defined as an isotropic radiator
+                    lamp_radiator = radiosim.IsotropicRadiatorSpectrum(
+                        config.effective_area,
+                        lamp_spectrum)
+
                 if config.power is not None:
                     lamp_spectrum.adjust_power(config.power)
-                atten_spectrum.set_attenuation(config.attenuation * 1e-2)
-                overlapped.push_spectrum(atten_spectrum)
+                lamp_radiator.set_attenuation(config.attenuation * 1e-2)
+                sphere.push_spectrum(lamp_radiator)
 
-        spectrum = radiosim.AttenuatedSpectrum(overlapped)
+        # The "attenuated spectrum" is what is going to determine how much flux
+        # is extracted from the sphere's output. The "set_fnum" will determine 
+        # the size of the light cone, from which we can determine the surface
+        # density of power. I.e. the irradiance.
+
+        spectrum = radiosim.AttenuatedSpectrum(sphere)
         spectrum.push_filter(response)
-        spectrum.set_fnum(self.config.detector.f)
+        spectrum.set_fnum(self.config.offner_f)
         
         self.spectrum = spectrum
 
@@ -236,7 +260,6 @@ class SimUI(QObject):
         lambda_min = grating[3]
         lambda_max = grating[4]
 
-
         if self.config.x_axis == 'frequency':
             nu = np.linspace(SPEED_OF_LIGHT / lambda_max, SPEED_OF_LIGHT / lambda_min, 1000)
             wl = None
@@ -253,8 +276,10 @@ class SimUI(QObject):
         y_axis = self.config.y_axis
         tdesc  = self.params.get_spectrum_type_desc(type)
 
+        label = self.window.get_custom_plot_label()
         if type == 'is_out':
-            label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
+            if label is None:
+                label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
                 y = K * self.det.get_E(wl = wl, nu = nu, atten = False)
             elif y_axis == 'photon_F':
@@ -262,7 +287,8 @@ class SimUI(QObject):
             else:
                 raise Exception(fr'Invalid quantity {type}:{y_axis}')
         elif type == 'detector':
-            label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
+            if label is None:
+                label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
                 y = K * self.det.get_E(wl = wl, nu = nu, atten = True)
             elif y_axis == 'photon_F':
@@ -284,12 +310,11 @@ class SimUI(QObject):
             if wl is None:
                 wl = SPEED_OF_LIGHT / nu
             y = stage.get_t_matrix(wl)
-            label = fr'{y_axis} at {self.config.grating}'
+            if label is None:
+                label = fr'{y_axis} at {self.config.grating}'
         else:
             raise Exception(fr'Invalid spectrum type {type}')
         
-        
-
         self.window.spectrum_plot(
             x,
             y,

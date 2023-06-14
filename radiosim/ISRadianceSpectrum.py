@@ -28,39 +28,53 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from abc import ABC, abstractmethod
 import numpy as np
 
 from . import RadianceSpectrum
 
-class OverlappedSpectrum(RadianceSpectrum):
-    def __init__(self):
-        super().__init__()
+#
+# This turns a power spectral density of a lamp into a spectral radiance
+# spectrum at the output of an integrating sphere, according to some basic
+# parameters like IS radius, aperture and reflectance of the inner coating
+# of the sphere.
+#
 
-        self.sourceSpectrums   = []
-        self.max_wl            = -1
+class ISRadianceSpectrum(RadianceSpectrum):
+    def __init__(self, radius, aperture_area, surface_response):
+        super().__init__()
+        self.lamps   = []
+        self.max_wl  = -1
+
+        self.sphere_area     = 4 * np.pi * radius ** 2
+        self.geom_efficiency = 1 - aperture_area / self.sphere_area
+        self.response        = surface_response
+
+    def power_to_radiance(self, wl):
+        rho_m   = self.response.get_t(wl)
+        rho     = rho_m * self.geom_efficiency
+        return rho / ((1 - rho) * self.sphere_area)
+
+    def power_to_radiance_matrix(self, wl):
+        rho_m   = self.response.get_t_matrix(wl)
+        rho     = rho_m * self.geom_efficiency
+        return rho / ((1 - rho) * self.sphere_area)
 
     def push_spectrum(self, spectrum):
         self.max_wl = -1
-        self.sourceSpectrums.append(spectrum)
-    
-    def set_fnum(self, fnum):
-        super().set_fnum(fnum)
+        self.lamps.append(spectrum)
 
-        for spectrum in self.sourceSpectrums:
-            spectrum.set_fnum(fnum)
-    
-    # TODO: take emissivity of each intermediate filter into account
-    def get_I(self, wl):
+    def get_total_psd(self, wl):
         result = 0
-        for spectrum in self.sourceSpectrums:
-            result += spectrum.get_I(wl)
-
+        for spectrum in self.lamps:
+            result += spectrum.get_PSD(wl)
+        
         return result
 
-    def get_I_matrix(self, wl):
+    def get_total_psd_matrix(self, wl):
         result = np.zeros(wl.shape)
-        for spectrum in self.sourceSpectrums:
-            result += spectrum.get_I_matrix(wl)
+        for spectrum in self.lamps:
+            result += spectrum.get_PSD_matrix(wl)
 
         return result
 
@@ -70,3 +84,9 @@ class OverlappedSpectrum(RadianceSpectrum):
     def get_max_nu(self):
         return -1
 
+
+    def get_I(self, wl):
+      return self.power_to_radiance(wl) * self.get_total_psd(wl)
+
+    def get_I_matrix(self, wl):
+      return self.power_to_radiance_matrix(wl) * self.get_total_psd_matrix(wl)

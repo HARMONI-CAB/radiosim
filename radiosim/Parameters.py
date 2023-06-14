@@ -93,7 +93,6 @@ class Parameters():
             'transmission' : ('Total transmission spectrum', self.transmission_types),
         }
 
-    
     def load_coating(self, key, desc, file):
         self.load_stage(key, file)
         self.is_coatings[key] = desc
@@ -266,16 +265,11 @@ class Parameters():
     def get_ao_mode_names(self):
         return ['NOAO', 'SCAO', 'LTAO']
     
-    def make_response(self, grating, ao, is_coating = None, is_bounces = 1):
+    def make_response(self, grating, ao):
         response = CompoundResponse()
         response.set_label('Instrument response')
         ao       = ao.upper()
         grating  = grating.upper()
-
-        if is_coating is not None:
-            stage = self.get_stage(is_coating)
-            stage.set_multiplicity(is_bounces)
-            response.push_back(stage)
         
         if ao == "SCAO":
             response.push_back(self.get_stage("SCAO Dichroic"))

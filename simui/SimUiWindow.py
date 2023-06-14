@@ -101,10 +101,13 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.spectPlotButton.clicked.connect(self.plotSpectrum)
         self.spectOverlayButton.clicked.connect(self.overlaySpectrum)
         self.spectClearAllbuton.clicked.connect(self.on_plot_clear)
-
+        self.overrideLabelCheck.toggled.connect(self.on_state_widget_changed)
+        
         self.spectTypeCombo.activated.connect(self.on_spect_type_changed)
         self.isCoatingCombo.activated.connect(self.on_state_widget_changed)
-        self.isEffectiveBouncesSpin.valueChanged.connect(self.on_state_widget_changed)
+        self.isRadiusSpin.valueChanged.connect(self.on_state_widget_changed)
+        self.isApertureDiamSpin.valueChanged.connect(self.on_state_widget_changed)
+        self.fNSpin.valueChanged.connect(self.on_state_widget_changed)
 
         self.tExpPlotButton.clicked.connect(self.plotTexp)
         self.tExpOverlayButton.clicked.connect(self.overlayTexp)
@@ -307,11 +310,17 @@ class SimUiWindow(QtWidgets.QMainWindow):
                     center  = .5 * (grating[3] + grating[4])
                     self.tExpWlSpin.setValue(center * 1e6)
         
+    def refresh_cm_ui_state(self):
+        self.isApertureDiamSpin.setMinimum(
+            min(1e3 * self.isRadiusSpin.value() * .25, 1e-3))
+        
+        self.isApertureDiamSpin.setMaximum(1e3 * self.isRadiusSpin.value())
+
     def refresh_ui_state(self):
         self.update_title()
+        self.refresh_cm_ui_state()
         self.refresh_spect_ui_state()
         self.refresh_exp_time_ui_state()
-        self.isEffectiveBouncesSpin.setEnabled(self.isCoatingCombo.currentIndex() > 0)
 
     def set_grating(self, grating_name):
         if grating_name is None:
@@ -412,7 +421,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.ronSpin.setValue(config.ron)
         self.qeSpin.setValue(config.QE * 1e2)
         self.pxSizeSpin.setValue(config.pixel_size * 1e6)
-        self.fNSpin.setValue(config.f)
 
     def get_detector_config(self):
         config = DetectorConfig()
@@ -421,16 +429,32 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.ron        = self.ronSpin.value()
         config.QE         = self.qeSpin.value() * 1e-2
         config.pixel_size = self.pxSizeSpin.value() * 1e-6
-        config.f          = self.fNSpin.value()
-
         return config
 
+    def set_cm_config(self, config):
+        self.fNSpin.setValue(config.offner_f)
+        self.isRadiusSpin.setValue(config.is_radius * 1e3)
+
+        self.isApertureDiamSpin.setMinimum(1e3 * self.isRadiusSpin.value() * .25)
+        self.isApertureDiamSpin.setMaximum(1e3 * self.isRadiusSpin.value())
+
+        self.isApertureDiamSpin.setValue(config.is_aperture * 1e3)
+
+        self.set_coating(config.is_coating)
 
     def any_lamp_is_on(self):
         for lamp in self.lamp_widgets.keys():
             if self.lamp_widgets[lamp].is_on():
                 return True
         return False
+
+    def get_custom_plot_label(self):
+        if self.overrideLabelCheck.isChecked():
+            text = self.overrideLabelEdit.text()
+            if len(text) > 0:
+                return text
+
+        return None
 
     def should_enable_yaxis(self):
         type = self.spectTypeCombo.currentData()
@@ -440,12 +464,14 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def refresh_spect_ui_state(self):
         lampsOn = self.any_lamp_is_on()
         shouldEnable = self.should_enable_yaxis()
+        
+        self.overrideLabelEdit.setEnabled(self.overrideLabelCheck.isChecked())
         self.spectYAxisCombo.setEnabled(shouldEnable)
         self.plotControlBox.setEnabled(shouldEnable)
 
         self.tExpParamBox.setEnabled(lampsOn)
         self.tExpControlBox.setEnabled(lampsOn)
-
+        
     def set_coating(self, coating):
         index = -1
 
@@ -465,10 +491,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
             
         if index == -1:
             self.isCoatingCombo.setCurrentIndex(0)
-            self.isEffectiveBouncesSpin.setEnabled(False)
         else:
             self.isCoatingCombo.setCurrentIndex(index)
-            self.isEffectiveBouncesSpin.setEnabled(True)
 
     def set_config(self, config):
         try:
@@ -478,14 +502,14 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.lambdaSamplingSpin.setValue(config.lambda_sampling)
             self.binningSpin.setValue(config.binning)
 
-            self.set_coating(config.is_coating)
+            self.set_cm_config(config)
+
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
             self.set_scale(config.scale)
 
             self.set_detector_config(config.detector)
 
-            self.isEffectiveBouncesSpin.setValue(config.is_bounces)
             self.expTimeSpin.setValue(config.t_exp)
             self.satLevelSpin.setValue(config.saturation)
             self.tempSpin.setValue(config.temperature - 273.15)
@@ -536,7 +560,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
             config.set_lamp_config(lamp, self.lamp_widgets[lamp].get_config())
         
         config.is_coating      = self.isCoatingCombo.currentData()
-        config.is_bounces      = self.isEffectiveBouncesSpin.value()
+        config.is_aperture     = self.isApertureDiamSpin.value() * 1e-3
+        config.is_radius       = self.isRadiusSpin.value() * 1e-3
         config.lambda_sampling = self.lambdaSamplingSpin.value()
         config.binning         = self.binningSpin.value()
         config.grating         = self.gratingCombo.currentText()
@@ -715,7 +740,18 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
     def on_cube_accepted(self):
         units, ff, data = self.cubeChooserDialog.get_selected_spectrum()
+        base_units = self.cubeChooserDialog.get_base_unit()
 
+        if base_units == 'erg/s/cm2/AA/arcsec2':
+            data *= 4.254517e+17
+        else:
+            QMessageBox.warning(
+                self,
+                'Cannot load this spectrum',
+                fr'The spectrum uses an unknown intensity unit ' + \
+                fr'({base_units}) and therefore it cannot be used as a source.'
+            )
+            return
         if units is not None:
             mult = 1
             if units.lower() == 'angstrom':

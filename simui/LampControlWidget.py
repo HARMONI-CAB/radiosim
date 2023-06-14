@@ -31,7 +31,7 @@
 from PyQt6 import QtWidgets, uic
 from PyQt6.QtCore import pyqtSignal
 
-from radiosim import LampConfig
+from radiosim import LampConfig, PowerSpectrum
 
 import pathlib
 
@@ -47,13 +47,18 @@ class LampControlWidget(QtWidgets.QWidget):
         self.spectrum = lampParams[0]
         self.lampGroupBox.setTitle(name)
         self.powerAdjustable = self.spectrum.is_adjustable()
+        self.isPowerSource = issubclass(type(self.spectrum), PowerSpectrum)
 
+        # Power-defined source: do not show area config
+        if self.isPowerSource:
+            self.effAreaLabel.setVisible(False)
+            self.effAreaSpin.setVisible(False)
+        
         if lampParams[1] is not None:
             self.lampDescLabel.setText(lampParams[1])
         else:
             self.lampDescLabel.setVisible(False)
         
-
         self.lampPowerSpin.setEnabled(self.powerAdjustable)
         if self.powerAdjustable:
             self.lampPowerSpin.setValue(self.spectrum.get_power())
@@ -68,7 +73,8 @@ class LampControlWidget(QtWidgets.QWidget):
         self.attenSlider.valueChanged.connect(self.on_ui_changed)
         self.lampOnOffButton.toggled.connect(self.on_ui_changed)
         self.lampPowerSpin.valueChanged.connect(self.on_ui_changed)
-        
+        self.effAreaSpin.valueChanged.connect(self.on_ui_changed)
+
     def is_on(self):
         return self.lampOnOffButton.isChecked()
     
@@ -93,13 +99,15 @@ class LampControlWidget(QtWidgets.QWidget):
         if config.power is not None and self.powerAdjustable:
             self.lampPowerSpin.setValue(config.power)
         self.attenSlider.setValue(config.attenuation)
-        
+        self.effAreaSpin.setVale(config.effective_area * 1e4)
+
     def get_config(self):
         config = LampConfig()
 
         config.is_on = self.lampOnOffButton.isChecked()
         config.power = self.lampPowerSpin.value() if self.powerAdjustable else None
         config.attenuation = self.attenSlider.value()
+        config.effective_area = self.effAreaSpin.value() * 1e-4
 
         return config
 
