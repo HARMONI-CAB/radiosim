@@ -61,6 +61,10 @@ class Parameters():
 
         self.load_stage('Cryostat',      't-cryostat.csv')
         self.load_stage('Detector',      't-detector.csv')
+        
+        self.load_stage('Fibers*',       't-fprs.csv')
+        self.load_stage('Offner',        't-fprs.csv')
+
         self.load_stage('FPRS',          't-fprs.csv')
         self.load_stage('LTAO Dichroic', 't-ltao-d.csv')
         self.load_stage('SCAO Dichroic', 't-scao-d.csv')
@@ -278,6 +282,9 @@ class Parameters():
         elif ao != "NOAO":
             raise Exception("Undefined AO configuration " + ao)
         
+        
+        response.push_back(self.get_stage("Fibers*"))
+        response.push_back(self.get_stage("Offner"))
         response.push_back(self.get_stage("FPRS"))
         response.push_back(self.get_stage("Cryostat"))
         response.push_back(self.get_stage("Preoptics"))
