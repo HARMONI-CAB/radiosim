@@ -32,7 +32,7 @@ import numpy as np
 from PyQt6 import QtCore, uic
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog
+from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog, QSpacerItem, QSizePolicy
 from PyQt6.QtSvgWidgets import QSvgWidget
 from radiosim import SimulationConfig, DetectorConfig
 from .PlotWidget import PlotWidget
@@ -103,11 +103,18 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.spectClearAllbuton.clicked.connect(self.on_plot_clear)
         self.overrideLabelCheck.toggled.connect(self.on_state_widget_changed)
         
+        self.instModeCombo.activated.connect(self.on_inst_mode_widget_changed)
+        self.focalLengthSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.apertureSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.zenithSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.moonSlider.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.isCoatingCombo.activated.connect(self.on_inst_mode_widget_changed)
+        self.isRadiusSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.isApertureDiamSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.fNSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+
         self.spectTypeCombo.activated.connect(self.on_spect_type_changed)
-        self.isCoatingCombo.activated.connect(self.on_state_widget_changed)
-        self.isRadiusSpin.valueChanged.connect(self.on_state_widget_changed)
-        self.isApertureDiamSpin.valueChanged.connect(self.on_state_widget_changed)
-        self.fNSpin.valueChanged.connect(self.on_state_widget_changed)
+
 
         self.tExpPlotButton.clicked.connect(self.plotTexp)
         self.tExpOverlayButton.clicked.connect(self.overlayTexp)
@@ -206,19 +213,33 @@ class SimUiWindow(QtWidgets.QMainWindow):
         # Remove exiting lamps
         lamps = self.params.get_lamp_names()
 
-        for l in self.lamp_widgets.keys():
-            widget = self.lamp_widgets[l]
-            self.lampLayout.removeWidget(widget)
-            widget.deleteLater()
+        for i in reversed(range(self.lampLayout.count())):
+            item = self.lampLayout.itemAt(i)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+            self.lampLayout.removeItem(item)
+
+        for i in reversed(range(self.skyLayout.count())): 
+            item = self.skyLayout.itemAt(i)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+            self.skyLayout.removeItem(item)
 
         # Add lamps
         for lamp in lamps:
             params = self.params.get_lamp_params(lamp)
             widget = LampControlWidget(lamp, params)
-            self.lampLayout.insertWidget(-1, widget)
+
+            if params[0].test_role('cal'):
+                self.lampLayout.insertWidget(-1, widget)
+            else:
+                self.skyLayout.insertWidget(-1, widget)
             widget.changed.connect(self.on_lamp_changed)
             self.lamp_widgets[lamp] = widget
         
+        self.skyLayout.addItem (QSpacerItem(1, 1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        self.lampLayout.addItem(QSpacerItem(1, 1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
     def refresh_params(self):
         self.refresh_lamps()
 
@@ -316,9 +337,25 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.isApertureDiamSpin.setMaximum(1e3 * self.isRadiusSpin.value())
 
+
+    def refresh_telescope_ui_state(self):
+        self.refresh_airmass()
+
+    def refresh_instrument_mode_ui_state(self):
+        if self.calModeStack.currentIndex() != self.instModeCombo.currentIndex():
+            self.refresh_lamps()
+        
+        self.calModeStack.setCurrentIndex(self.instModeCombo.currentIndex())
+        self.sourceStack.setCurrentIndex(self.instModeCombo.currentIndex())
+        
+        if self.calModeStack.currentIndex() == 0:
+            self.refresh_cm_ui_state()
+        else:
+            self.refresh_telescope_ui_state()
+    
     def refresh_ui_state(self):
         self.update_title()
-        self.refresh_cm_ui_state()
+        self.refresh_instrument_mode_ui_state()
         self.refresh_spect_ui_state()
         self.refresh_exp_time_ui_state()
 
@@ -493,6 +530,28 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.isCoatingCombo.setCurrentIndex(0)
         else:
             self.isCoatingCombo.setCurrentIndex(index)
+
+    def set_cal_mode(self, enabled):
+        if enabled:
+            self.calModeStack.setCurrentIndex(0)
+            self.instModeCombo.setCurrentIndex(0)
+        else:
+            self.calModeStack.setCurrentIndex(1)
+            self.instModeCombo.setCurrentIndex(1)
+
+    def refresh_airmass(self):
+        angle = self.zenithSpin.value()
+        toRad = angle / 180. * np.pi
+        sec   = 1. / np.cos(toRad)
+        
+        self.airmassLabel.setText(fr'{sec:.2f}')
+
+    def set_telescope_config(self, config):
+        self.focalLengthSpin.setValue(config.focal_length)
+        self.apertureSpin.setValue(config.aperture)
+        self.zenithSpin.setValue(config.zenith_distance)
+        self.moonSlider.setValue(config.moon * 100)
+        self.refresh_airmass()
 
     def set_config(self, config):
         try:
@@ -694,6 +753,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
             return
         QtWidgets.QApplication.quit()
 
+    def on_inst_mode_widget_changed(self):
+        self.notify_changes()
+        self.refresh_instrument_mode_ui_state()
+
     def on_state_widget_changed(self):
         self.notify_changes()
         self.refresh_ui_state()
@@ -779,6 +842,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.params.load_lamp(
                 name,
                 response = resp,
-                desc = 'Datacube source')
+                desc = 'Datacube source',
+                role = 'telescope')
             
+            self.instModeCombo.setCurrentIndex(1)
+            self.refresh_instrument_mode_ui_state()
             self.refresh_lamps()

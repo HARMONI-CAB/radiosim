@@ -197,15 +197,7 @@ class SimUI(QObject):
         
         return coating
 
-    def simulate_spectrum(self):
-        self.config = self.window.get_config()
-        self.refresh_instrument_graph()
-
-        self.x_axis_name, self.x_axis_units = self.window.get_x_axis_selection()
-        self.y_axis_name, self.y_axis_units = self.window.get_y_axis_selection()
-
-        # Initialize optical train
-        response = self.make_current_response()
+    def make_cal_mode_power_spectrum(self):
         coating  = self.get_selected_coating()
 
         sphere  = radiosim.ISRadianceSpectrum(
@@ -242,10 +234,26 @@ class SimUI(QObject):
         # is extracted from the sphere's output. The "set_fnum" will determine 
         # the size of the light cone, from which we can determine the surface
         # density of power. I.e. the irradiance.
-
         spectrum = radiosim.AttenuatedSpectrum(sphere)
-        spectrum.push_filter(response)
         spectrum.set_fnum(self.config.offner_f)
+        return spectrum
+
+    def make_sky_spectrum(self):
+        s
+
+    def simulate_spectrum(self):
+        self.config = self.window.get_config()
+        self.refresh_instrument_graph()
+
+        self.x_axis_name, self.x_axis_units = self.window.get_x_axis_selection()
+        self.y_axis_name, self.y_axis_units = self.window.get_y_axis_selection()
+
+        # Initialize optical train
+        response = self.make_current_response()
+
+        spectrum = self.make_cal_mode_power_spectrum()
+
+        spectrum.push_filter(response)
         
         self.spectrum = spectrum
 

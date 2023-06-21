@@ -43,7 +43,20 @@ class RadianceSpectrum(ABC):
         self.power         = None
         self.power_factor  = 1
         self.native_wl     = None
+        self.role          = None
 
+    def set_role(self, role):
+        self.role = role
+
+    def get_role(self):
+        return self.role
+
+    def test_role(self, role):
+        if self.role is None:
+            return False
+
+        return self.role == role
+        
     def units(self):
         return self.unit_type
     

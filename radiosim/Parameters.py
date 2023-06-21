@@ -140,7 +140,7 @@ class Parameters():
 
         return self.spect_types[type][1][spec]
     
-    def load_lamp(self, name, path = None, rating = None, desc = None, response = None):
+    def load_lamp(self, name, path = None, rating = None, desc = None, response = None, role = "cal"):
         if path is not None:
             full_path = self.resolve_data_file(path)
             spectrum = InterpolatedSpectrum(full_path)
@@ -149,22 +149,28 @@ class Parameters():
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
+        
+        spectrum.set_role(role)
         self.lamps[name] = (spectrum, desc)
 
-    def add_line_lamp(self, name, F, desc = None, T = 1000, rating = None, frel_c = 0):
+    def add_line_lamp(self, name, F, desc = None, T = 1000, rating = None, frel_c = 0, role = "cal"):
         spectrum = LineSpectrum(F, T, frel_c)
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
+        
+        spectrum.set_role(role)
         self.lamps[name] = (spectrum, desc)
+        
         return spectrum
 
-    def load_black_body_lamp(self, name, T, rating = None, desc = None):
+    def load_black_body_lamp(self, name, T, rating = None, desc = None, role = "cal"):
         spectrum = BlackBodySpectrum(T)
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
         
+        spectrum.set_role(role)
         self.lamps[name] = (spectrum, desc)
 
     def get_lamp(self, name):

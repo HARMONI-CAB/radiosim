@@ -148,6 +148,24 @@ class DetectorConfig(SerializableConfig):
     def load(self, dict):
         self.load_all(dict)
     
+class TelescopeConfig(SerializableConfig):
+    def __init__(self):
+        super().__init__()
+
+        self.focal_length    = 743.40
+        self.aperture        = 39
+        self.zenith_distance = 0
+        self.moon            = 0
+
+    def save(self):
+        self.save_param('focal_length')
+        self.save_param('aperture')
+        self.save_param('zenith_distance')
+        self.save_param('moon')
+
+    def load(self, dict):
+        self.load_all(dict)
+
 class SimulationConfig(SerializableConfig):
     def __init__(self):
         super().__init__()
@@ -155,7 +173,9 @@ class SimulationConfig(SerializableConfig):
         self.lamps         = {}
         self.lamp_configs  = {}
 
+        self.telescope       = TelescopeConfig()
         self.detector        = DetectorConfig()
+        self.cal_select      = False
         self.is_radius       = 1e-1
         self.is_aperture     = .5e-1
         self.is_coating      = 'SPECTRALON'
@@ -190,6 +210,7 @@ class SimulationConfig(SerializableConfig):
         self.lamps[name] = lamp
     
     def save(self):
+        self.save_param("cal_select")
         self.save_param("lambda_sampling")
         
         self.save_param("is_coating")
@@ -227,7 +248,11 @@ class SimulationConfig(SerializableConfig):
         self.detector_config = self.detector.as_dict()
         
         self.save_param('detector_config')
-        
+
+        self.telescope.save()
+        self.telescope_config = self.detector.as_dict()
+        self.save_param('telescope_config')
+
     def load(self, dict):
         self.load_all(dict)
 
@@ -239,3 +264,4 @@ class SimulationConfig(SerializableConfig):
             self.lamps[lamp].load(self.lamp_configs[lamp])
 
         self.detector.load(self.detector_config)
+        self.telescope.load(self.telescope_config)
