@@ -33,7 +33,7 @@ from . import RadianceSpectrum
 import scipy.interpolate
 
 class InterpolatedSpectrum(RadianceSpectrum.RadianceSpectrum):
-    def __init__(self, file = None, response = None):
+    def __init__(self, file = None, response = None, SI = False):
         super().__init__()
         
         if file is not None:
@@ -46,8 +46,9 @@ class InterpolatedSpectrum(RadianceSpectrum.RadianceSpectrum):
         if resp.shape[0] == 2:
             resp = resp.transpose()
         
-        resp[:, 0] *= 1e-6 # Adjust units from µm to m
-        resp[:, 1] *= 1e+6 # Adjust units from J / (m^2 * µm * sr * s) to J / (m^2 * m * sr * s)
+        if not SI:
+            resp[:, 0] *= 1e-6 # Adjust units from µm to m
+            resp[:, 1] *= 1e+6 # Adjust units from J / (m^2 * µm * sr * s) to J / (m^2 * m * sr * s)
 
         max_ndx = np.argmax(resp[:, 1])
 

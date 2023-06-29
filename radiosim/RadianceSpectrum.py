@@ -61,9 +61,13 @@ class RadianceSpectrum(ABC):
         return self.unit_type
     
     def set_fnum(self, fnum):
-        self.fnum          = 0
+        self.fnum          = fnum
         self.to_irradiance = np.pi / (4 * fnum ** 2)
         
+    def set_spaxel(self, x, y):
+        self.to_irradiance = x * y
+        self.fnum          = np.sqrt(np.pi / (4 * self.to_irradiance))
+
     def set_nominal_power_rating(self, power):
         self.power        = power
         self.power_factor = 1
@@ -140,7 +144,8 @@ class RadianceSpectrum(ABC):
     
     def E(self, wl = None, nu = None):
         if self.to_irradiance < 0:
-            raise Exception("Cannot calculate radiance: f/# not set")
+            print(str(self.__class__), ': to irradiance:', self.to_irradiance)
+            raise Exception("Cannot calculate irradiance: f/# not set")
         return self.to_irradiance * self.I(wl, nu)
         
     def photons(self, wl = None, nu = None):

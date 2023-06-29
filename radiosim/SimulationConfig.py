@@ -154,14 +154,18 @@ class TelescopeConfig(SerializableConfig):
 
         self.focal_length    = 743.40
         self.aperture        = 39
+        self.collecting_area = 980
         self.zenith_distance = 0
         self.moon            = 0
+        self.efficiency      = 1
 
     def save(self):
         self.save_param('focal_length')
         self.save_param('aperture')
         self.save_param('zenith_distance')
         self.save_param('moon')
+        self.save_param('efficiency')
+        self.save_param('collecting_area')
 
     def load(self, dict):
         self.load_all(dict)

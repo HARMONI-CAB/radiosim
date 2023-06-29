@@ -49,6 +49,7 @@ import radiosim.PowerSpectrum
 import radiosim.AttenuatedSpectrum
 import radiosim.ISRadianceSpectrum
 import radiosim.IsotropicRadiatorSpectrum
+import radiosim.OverlappedSpectrum
 
 class SimUI(QObject):
     def __init__(self, *args, **kwargs):
@@ -142,33 +143,39 @@ class SimUI(QObject):
             edge [fontname="Helvetica", color="#505050", constaint=false];
         '''
 
+        role       = 'cal' if self.config.cal_select else 'telescope'
         response   = self.make_current_response()
         lamp_nodes = []
         count = 0
 
         for lamp in self.config.lamps.keys():
-            config = self.config.lamps[lamp]
-            if config.is_on:
+            config   = self.config.lamps[lamp]
+            spectrum = self.params.get_lamp(lamp)
+            if config.is_on and spectrum.test_role(role):
                 lamp_node = fr'lamp_{count}'
                 count += 1
                 lamp_nodes.append(lamp_node)
                 intensity = int(255 - config.attenuation * 2.55)
                 color     = '#ffffff' if intensity < 127 else '#000000'
                 fillcolor = fr'#{intensity:02x}{intensity:02x}00'
-                graph += f'{lamp_node} [shape=ellipse, fillcolor="{fillcolor}", label=<<b><font color="{color}">{lamp}</font></b>>];\n'
+                graph += f'{lamp_node} [shape=ellipse, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
 
         coating = self.get_selected_coating()
         color = coating._color
 
-        html   = f'Integrating Sphere\n{coating._name}'
-        graph += f'IS [shape=circle, fillcolor="white:{color}", gradientangle=0, style=radial, label = "{html}"];\n'
+        if self.config.cal_select:
+            html   = f'Integrating Sphere\n{coating._name}'
+            graph += f'input [shape=circle, fillcolor="white:{color}", gradientangle=0, style=radial, label = "{html}"];\n'
+        else:
+            html   = f'<b>ELT</b><br />{self.config.telescope.focal_length} / {self.config.telescope.aperture}'
+            graph += f'input [shape=cylinder, fillcolor="white", rotate=90, height=2, width=2, label = <{html}>];\n'
         
         graph += response.get_graphviz()
 
         for lamp in lamp_nodes:
-            graph += f'  {lamp} -> IS;\n'
+            graph += f'  {lamp} -> input;\n'
         
-        graph += f'  IS -> {response.get_entrance_node_name()};\n'
+        graph += f'  input -> {response.get_entrance_node_name()};\n'
 
         graph += '}'
 
@@ -185,7 +192,8 @@ class SimUI(QObject):
     def make_current_response(self):
         return self.params.make_response(
             grating = self.config.grating, 
-            ao = self.config.aomode)
+            ao = self.config.aomode,
+            cal = self.config.cal_select)
 
     def get_selected_coating(self):
         # Initialize integrating sphere
@@ -197,7 +205,13 @@ class SimUI(QObject):
         
         return coating
 
-    def make_cal_mode_power_spectrum(self):
+    def make_cal_mode_spectrum(self):
+        #
+        # The generation of a CAL mode spectrum works assuming that there is
+        # certain unstructured power input that is transformed into a Lambertian
+        # surface that feeds the Calibration Module's Offner. The sources can
+        # be either pure power spectrums or isotropic radiators.
+        #
         coating  = self.get_selected_coating()
 
         sphere  = radiosim.ISRadianceSpectrum(
@@ -210,25 +224,27 @@ class SimUI(QObject):
         for lamp in self.config.lamps.keys():
             config = self.config.lamps[lamp]
             if config.is_on:
-                if len(self.lamp_text) > 0:
-                    self.lamp_text += ' + '
-                self.lamp_text += lamp
-                
                 lamp_spectrum = self.params.get_lamp(lamp)
 
-                # Power defined source: defined "as-is"
-                if issubclass(type(lamp_spectrum), radiosim.PowerSpectrum):
-                    lamp_radiator = lamp_spectrum
-                else:
-                    # Radiance-defined source: defined as an isotropic radiator
-                    lamp_radiator = radiosim.IsotropicRadiatorSpectrum(
-                        config.effective_area,
-                        lamp_spectrum)
+                if lamp_spectrum.test_role('cal'):
+                    if len(self.lamp_text) > 0:
+                        self.lamp_text += ' + '
+                    self.lamp_text += lamp
+                    
 
-                if config.power is not None:
-                    lamp_spectrum.adjust_power(config.power)
-                lamp_radiator.set_attenuation(config.attenuation * 1e-2)
-                sphere.push_spectrum(lamp_radiator)
+                    # Power defined source: defined "as-is"
+                    if issubclass(type(lamp_spectrum), radiosim.PowerSpectrum):
+                        lamp_radiator = lamp_spectrum
+                    else:
+                        # Radiance-defined source: defined as an isotropic radiator
+                        lamp_radiator = radiosim.IsotropicRadiatorSpectrum(
+                            config.effective_area,
+                            lamp_spectrum)
+
+                    if config.power is not None:
+                        lamp_spectrum.adjust_power(config.power)
+                    lamp_radiator.set_attenuation(config.attenuation * 1e-2)
+                    sphere.push_spectrum(lamp_radiator)
 
         # The "attenuated spectrum" is what is going to determine how much flux
         # is extracted from the sphere's output. The "set_fnum" will determine 
@@ -238,8 +254,43 @@ class SimUI(QObject):
         spectrum.set_fnum(self.config.offner_f)
         return spectrum
 
-    def make_sky_spectrum(self):
-        s
+    def make_obs_mode_spectrum(self):
+        #
+        # The generation of an observation mode spectrum assumes that there is
+        # certain radiance distribution in the sky with no spatial structure
+        # (i.e. we are at the optical infinity - the wavefronts are flat). It
+        # also assumes that the radiance of the selected pixel is representative
+        # of its surroundings, so that the effect of the PSF is low.
+        #
+
+        mas2rad = 4.8481368e-09 # 1 mas = 4.8481368e-09 rad
+
+        sky = radiosim.OverlappedSpectrum()
+
+        # Spectrum coming from all lamps
+        self.lamp_text = ''
+        for lamp in self.config.lamps.keys():
+            config = self.config.lamps[lamp]
+            if config.is_on:
+                lamp_spectrum = self.params.get_lamp(lamp)
+
+                if lamp_spectrum.test_role('telescope'):
+                    if len(self.lamp_text) > 0:
+                        self.lamp_text += ' + '
+                    self.lamp_text += lamp
+                    
+                    if issubclass(type(lamp_spectrum), radiosim.PowerSpectrum):
+                        raise RuntimeError("Power spectrums are not allowed as sky sources")
+                    
+                    sky.push_spectrum(lamp_spectrum)
+
+        # In observation mode, we already have the size of our pixel in the sky.
+        # This means that we can convert directly from radiance to irradiance
+        # by multiplying the surface intensity by the spaxel scale.
+        spectrum = radiosim.AttenuatedSpectrum(sky)
+        spectrum.set_spaxel(self.config.scale[0] * mas2rad, self.config.scale[1] * mas2rad)
+        spectrum.set_attenuation(1 - self.config.telescope.efficiency)
+        return spectrum
 
     def simulate_spectrum(self):
         self.config = self.window.get_config()
@@ -251,16 +302,19 @@ class SimUI(QObject):
         # Initialize optical train
         response = self.make_current_response()
 
-        spectrum = self.make_cal_mode_power_spectrum()
-
+        if self.config.cal_select:
+            spectrum = self.make_cal_mode_spectrum()
+            dimRelX  = self.config.scale[0] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ALONG)
+            dimRelY  = self.config.scale[1] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ACROSS)
+            A_sp     = self.config.detector.pixel_size ** 2 * dimRelX * dimRelY
+        else:
+            spectrum = self.make_obs_mode_spectrum()
+            A_sp     = self.config.telescope.collecting_area
+            
         spectrum.push_filter(response)
-        
         self.spectrum = spectrum
 
         # Initialize detector
-        dimRelX = self.config.scale[0] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ALONG)
-        dimRelY = self.config.scale[1] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ACROSS)
-        A_sp    = self.config.detector.pixel_size ** 2 * dimRelX * dimRelY
 
         grating = self.params.get_grating(self.config.grating)
         self.det = radiosim.DetectorSimulator(

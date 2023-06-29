@@ -58,4 +58,5 @@ from .Parameters             import Parameters
 from .SimulationConfig       import SimulationConfig
 from .SimulationConfig       import DetectorConfig
 from .SimulationConfig       import LampConfig
+from .SimulationConfig       import TelescopeConfig
 

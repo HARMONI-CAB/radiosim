@@ -92,7 +92,7 @@ class Parameters():
             self.transmission_types[stage] = (stage, 'fraction')
         
         self.spect_types = {
-            'is_out'       : ('Integrating sphere input', self.is_spect_types),
+            'is_out'       : ('Input spectra (IS or telescope)', self.is_spect_types),
             'detector'     : ('Detector', self.ccd_spect_types),
             'transmission' : ('Total transmission spectrum', self.transmission_types),
         }
@@ -140,12 +140,12 @@ class Parameters():
 
         return self.spect_types[type][1][spec]
     
-    def load_lamp(self, name, path = None, rating = None, desc = None, response = None, role = "cal"):
+    def load_lamp(self, name, path = None, rating = None, desc = None, response = None, role = "cal", SI = False):
         if path is not None:
             full_path = self.resolve_data_file(path)
             spectrum = InterpolatedSpectrum(full_path)
         else:
-            spectrum = InterpolatedSpectrum(response = response)
+            spectrum = InterpolatedSpectrum(response = response, SI = SI)
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
@@ -275,7 +275,7 @@ class Parameters():
     def get_ao_mode_names(self):
         return ['NOAO', 'SCAO', 'LTAO']
     
-    def make_response(self, grating, ao):
+    def make_response(self, grating, ao, cal):
         response = CompoundResponse()
         response.set_label('Instrument response')
         ao       = ao.upper()
@@ -288,9 +288,10 @@ class Parameters():
         elif ao != "NOAO":
             raise Exception("Undefined AO configuration " + ao)
         
+        if cal:
+            response.push_back(self.get_stage("Fibers*"))
+            response.push_back(self.get_stage("Offner"))
         
-        response.push_back(self.get_stage("Fibers*"))
-        response.push_back(self.get_stage("Offner"))
         response.push_back(self.get_stage("FPRS"))
         response.push_back(self.get_stage("Cryostat"))
         response.push_back(self.get_stage("Preoptics"))

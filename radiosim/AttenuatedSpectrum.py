@@ -59,6 +59,10 @@ class AttenuatedSpectrum(RadianceSpectrum.RadianceSpectrum):
         super().set_fnum(fnum)
         self.sourceSpectrum.set_fnum(fnum)
     
+    def set_spaxel(self, x, y):
+        super().set_spaxel(x, y)
+        self.sourceSpectrum.set_spaxel(x, y)
+    
     # TODO: take emissivity of each intermediate filter into account
     def get_I(self, wl):
         alpha = (1. - self.attenuation) * self.sourceSpectrum.power_factor

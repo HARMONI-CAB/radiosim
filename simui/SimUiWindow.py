@@ -32,9 +32,9 @@ import numpy as np
 from PyQt6 import QtCore, uic
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog, QSpacerItem, QSizePolicy
+from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog, QSpacerItem, QSizePolicy, QLabel
 from PyQt6.QtSvgWidgets import QSvgWidget
-from radiosim import SimulationConfig, DetectorConfig
+from radiosim import SimulationConfig, DetectorConfig, TelescopeConfig
 from .PlotWidget import PlotWidget
 from .CubeChooserDialog import CubeChooserDialog
 from .LampControlWidget import LampControlWidget
@@ -75,7 +75,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.lamp_widgets = {}
         self.filename = None
         self.changes = False
-
+        self.params = None
+        
         self.set_texp_simul_running(False)
         self.refresh_ui_state()
         self.connect_all()
@@ -105,7 +106,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.instModeCombo.activated.connect(self.on_inst_mode_widget_changed)
         self.focalLengthSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.efficiencySpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.apertureSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
+        self.collectingAreaSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.zenithSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.moonSlider.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.isCoatingCombo.activated.connect(self.on_inst_mode_widget_changed)
@@ -211,8 +214,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
     def refresh_lamps(self):
         # Remove exiting lamps
-        lamps = self.params.get_lamp_names()
-
         for i in reversed(range(self.lampLayout.count())):
             item = self.lampLayout.itemAt(i)
             if item.widget() is not None:
@@ -224,6 +225,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
             if item.widget() is not None:
                 item.widget().deleteLater()
             self.skyLayout.removeItem(item)
+
+        if self.params is None:
+            return
+        
+        lamps = self.params.get_lamp_names()
 
         # Add lamps
         for lamp in lamps:
@@ -237,7 +243,17 @@ class SimUiWindow(QtWidgets.QMainWindow):
             widget.changed.connect(self.on_lamp_changed)
             self.lamp_widgets[lamp] = widget
         
-        self.skyLayout.addItem (QSpacerItem(1, 1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        if self.skyLayout.count() == 0:
+            noSources = QLabel()
+            noSources.setText('No light sources defined. Open at least one datacube to run a simulation.')
+            noSources.setStyleSheet('font-style: italic;')
+            noSources.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            noSources.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+            noSources.setWordWrap(True)
+            self.skyLayout.insertWidget(-1, noSources)
+        else:
+            self.skyLayout.addItem (QSpacerItem(1, 1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        
         self.lampLayout.addItem(QSpacerItem(1, 1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 
     def refresh_params(self):
@@ -337,14 +353,19 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.isApertureDiamSpin.setMaximum(1e3 * self.isRadiusSpin.value())
 
+    def refresh_max_area(self):
+            maxArea = np.pi * .25 * self.apertureSpin.value() ** 2
+            self.collectingAreaSpin.setMaximum(maxArea)
+            self.collectingAreaSpin.setMinimum(1)
+            self.maxCollAreaLabel.setText(fr'≤ {maxArea:g} m²')
 
     def refresh_telescope_ui_state(self):
         self.refresh_airmass()
 
-    def refresh_instrument_mode_ui_state(self):
-        if self.calModeStack.currentIndex() != self.instModeCombo.currentIndex():
-            self.refresh_lamps()
+        if self.sender() == self.apertureSpin:
+            self.refresh_max_area()
         
+    def refresh_instrument_mode_ui_state(self):
         self.calModeStack.setCurrentIndex(self.instModeCombo.currentIndex())
         self.sourceStack.setCurrentIndex(self.instModeCombo.currentIndex())
         
@@ -468,6 +489,18 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.pixel_size = self.pxSizeSpin.value() * 1e-6
         return config
 
+    def get_telescope_config(self):
+        config = TelescopeConfig()
+
+        config.focal_length    = self.focalLengthSpin.value()
+        config.aperture        = self.apertureSpin.value()
+        config.zenith_distance = self.zenithSpin.value()
+        config.collecting_area = self.collectingAreaSpin.value()
+        config.moon            = self.moonSlider.value() * 1e-2
+        config.efficiency      = self.efficiencySpin.value() * 1e-2
+
+        return config
+
     def set_cm_config(self, config):
         self.fNSpin.setValue(config.offner_f)
         self.isRadiusSpin.setValue(config.is_radius * 1e3)
@@ -479,10 +512,16 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.set_coating(config.is_coating)
 
+    def get_current_role(self):
+        return 'cal' if self.instModeCombo.currentIndex() == 0 else 'telescope'
+
     def any_lamp_is_on(self):
+        role = self.get_current_role()
         for lamp in self.lamp_widgets.keys():
             if self.lamp_widgets[lamp].is_on():
-                return True
+                spectrum = self.params.get_lamp(lamp)
+                if spectrum.test_role(role):
+                    return True
         return False
 
     def get_custom_plot_label(self):
@@ -532,12 +571,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.isCoatingCombo.setCurrentIndex(index)
 
     def set_cal_mode(self, enabled):
-        if enabled:
-            self.calModeStack.setCurrentIndex(0)
-            self.instModeCombo.setCurrentIndex(0)
-        else:
-            self.calModeStack.setCurrentIndex(1)
-            self.instModeCombo.setCurrentIndex(1)
+        ndx = 0 if enabled else 1
+        self.calModeStack.setCurrentIndex(ndx)
+        self.instModeCombo.setCurrentIndex(ndx)
+        self.sourceStack.setCurrentIndex(ndx)
 
     def refresh_airmass(self):
         angle = self.zenithSpin.value()
@@ -550,8 +587,12 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.focalLengthSpin.setValue(config.focal_length)
         self.apertureSpin.setValue(config.aperture)
         self.zenithSpin.setValue(config.zenith_distance)
+        self.collectingAreaSpin.setValue(config.collecting_area)
         self.moonSlider.setValue(config.moon * 100)
+        self.efficiencySpin.setValue(config.efficiency * 100)
+
         self.refresh_airmass()
+        self.refresh_max_area()
 
     def set_config(self, config):
         try:
@@ -562,6 +603,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.binningSpin.setValue(config.binning)
 
             self.set_cm_config(config)
+            self.set_telescope_config(config.telescope)
+            self.set_cal_mode(config.cal_select)
 
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
@@ -618,6 +661,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for lamp in self.lamp_widgets.keys():
             config.set_lamp_config(lamp, self.lamp_widgets[lamp].get_config())
         
+        config.cal_select      = self.instModeCombo.currentIndex() == 0
+
         config.is_coating      = self.isCoatingCombo.currentData()
         config.is_aperture     = self.isApertureDiamSpin.value() * 1e-3
         config.is_radius       = self.isRadiusSpin.value() * 1e-3
@@ -644,6 +689,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.texp_iters      = self.intStepsSpin.value()
 
         config.detector        = self.get_detector_config()
+        config.telescope       = self.get_telescope_config()
 
         return config
 
@@ -756,7 +802,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def on_inst_mode_widget_changed(self):
         self.notify_changes()
         self.refresh_instrument_mode_ui_state()
-
+        self.refresh_spect_ui_state()
+        
     def on_state_widget_changed(self):
         self.notify_changes()
         self.refresh_ui_state()
@@ -802,9 +849,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         return name
 
     def on_cube_accepted(self):
-        units, ff, data = self.cubeChooserDialog.get_selected_spectrum()
+        freq_units, ff, data = self.cubeChooserDialog.get_selected_spectrum()
         base_units = self.cubeChooserDialog.get_base_unit()
 
+        # Convert units to J/s/m^2/m/rad^2
         if base_units == 'erg/s/cm2/AA/arcsec2':
             data *= 4.254517e+17
         else:
@@ -815,23 +863,24 @@ class SimUiWindow(QtWidgets.QMainWindow):
                 fr'({base_units}) and therefore it cannot be used as a source.'
             )
             return
-        if units is not None:
+        
+        if freq_units is not None:
             mult = 1
-            if units.lower() == 'angstrom':
-                mult = 0.0001
-            elif units.lower() == 'nm':
+            if freq_units.lower() == 'angstrom':
+                mult = 1e-4
+            elif freq_units.lower() == 'nm':
                 mult = 1e-3
-            elif units.lower() != 'µm':
+            elif freq_units.lower() != 'µm':
                 QMessageBox.warning(
                     self,
                     'Cannot load this spectrum',
                     fr'The spectrum uses an unknown frequency / wavelength axis ' + \
-                    fr'unit ({units}) and therefore it cannot be used as a source.'
+                    fr'unit ({freq_units}) and therefore it cannot be used as a source.'
                 )
                 return
             
             ff   *= mult
-            data /= mult
+            data *= 1e-6 
             name = self.cubeChooserDialog.get_lamp_name()
             if len(name) == 0:
                 name = self.suggest_lamp_name()

@@ -45,12 +45,17 @@ class LampControlWidget(QtWidgets.QWidget):
         uic.loadUi(fr"{dir}/LampControl.ui", self)
 
         self.spectrum = lampParams[0]
+        self.calmode  = self.spectrum.test_role('cal')
         self.lampGroupBox.setTitle(name)
         self.powerAdjustable = self.spectrum.is_adjustable()
         self.isPowerSource = issubclass(type(self.spectrum), PowerSpectrum)
 
+        self.attenPfx.setVisible(self.calmode)
+        self.attenSlider.setVisible(self.calmode)
+        self.attenLabel.setVisible(self.calmode)
+
         # Power-defined source: do not show area config
-        if self.isPowerSource:
+        if self.isPowerSource or not self.calmode:
             self.effAreaLabel.setVisible(False)
             self.effAreaSpin.setVisible(False)
         

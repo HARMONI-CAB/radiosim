@@ -145,7 +145,7 @@ class DetectorSimulator:
     def set_spectrum(self, spectrum):
         self.spectrum = spectrum
 
-    # Returns attenuated? flux (W/(m^2µm))
+    # Returns attenuated? flux (W/(m^2 m))
     def get_E(self, wl = None, nu = None, atten = True):
         if atten:
             spectrum = self.spectrum
@@ -154,15 +154,14 @@ class DetectorSimulator:
         
         return spectrum.E(wl = wl, nu = nu)
     
-    # Returns attenuated? photon flux (photons/(m^2µm))
+    # Returns attenuated? photon flux (photons/(m^2 m))
     def get_photon_flux(self, wl = None, nu = None, atten = True):
         return self.get_E(wl = wl, nu = nu, atten = atten) / self.E_p(wl, nu)
     
     # Returns attenuated flux per spaxel (T_h * T_d * \Phi_{sp})
-    # This is actually a spectral density (W/µm)
+    # This is actually a spectral density (W/m)
     def attenFluxPerSpaxel(self, wl = None, nu = None):
         self.assert_spectrum()
-
         return self.spectrum.E(wl = wl, nu = nu) * self.A_sp
 
     # Returns band dispersion (D_h). This is actually \Delta\lambda
