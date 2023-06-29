@@ -47,6 +47,7 @@ class Parameters():
         self.stages      = {}
         self.lamps       = {}
         self.filters     = {}
+        self.fibers      = {}
         self.is_coatings = {}
         self.equalizers  = {}
         self.gratings    = {}
@@ -55,14 +56,9 @@ class Parameters():
         self.finest_spaxel_size_mas = HARMONI_FINEST_SPAXEL_SIZE
         self.pixel_size             = HARMONI_PIXEL_SIZE
 
-        self.load_coating('SPECTRALON',   "LabSphere's Spectralon®",   't-spectralon.csv')
-        self.load_coating('SPECTRAFLECT', "LabSphere's Spectraflect®", 't-spectraflect.csv')
-        self.load_coating('DIFFGOLD',     "LabSphere's Infragold®",    't-diffuse-gold.csv')
-
         self.load_stage('Cryostat',      't-cryostat.csv')
         self.load_stage('Detector',      't-detector.csv')
         
-        self.load_stage('Fibers*',       't-fprs.csv')
         self.load_stage('Offner',        't-fprs.csv')
 
         self.load_stage('FPRS',          't-fprs.csv')
@@ -222,7 +218,21 @@ class Parameters():
     
     def get_filter_names(self):
         return list(self.filters.keys())
+
+    def load_fiber(self, name, path):
+        full_path = self.resolve_data_file(path)
+        response = InterpolatedResponse(full_path)
+        response.set_label('Fiber: ' + name)
+        self.fibers[name] = response
+
+    def get_fiber(self, name):
+        if name not in self.fibers:
+            return None
+        return self.fibers[name]
     
+    def get_fiber_names(self):
+        return list(self.fibers.keys())
+
     def load_equalizer(self, name, path):
         full_path = self.resolve_data_file(path)
         response = InterpolatedResponse(full_path)
@@ -289,7 +299,15 @@ class Parameters():
             raise Exception("Undefined AO configuration " + ao)
         
         if cal:
-            response.push_back(self.get_stage("Fibers*"))
+            gr_obj = self.get_grating(grating)
+            if gr_obj is None:
+                raise Exception(fr'Undefined grating: {grating}')
+        
+            # Push passband filter
+            response.push_back(gr_obj[0])
+
+            # Push equalizer
+            response.push_back(gr_obj[1])
             response.push_back(self.get_stage("Offner"))
         
         response.push_back(self.get_stage("FPRS"))
@@ -298,15 +316,6 @@ class Parameters():
         response.push_back(self.get_stage("IFU"))
         response.push_back(self.get_stage("Spectrograph"))
 
-        gr_obj = self.get_grating(grating)
-        if gr_obj is None:
-            raise Exception(fr'Undefined grating: {grating}')
-        
-        # Push passband filter
-        response.push_back(gr_obj[0])
-
-        # Push equalizer
-        response.push_back(gr_obj[1])
 
         response.push_back(self.get_stage("Misalignments"))
         response.push_back(self.get_stage("Detector"))
@@ -517,6 +526,11 @@ class Parameters():
 
 
     def load_defaults(self):
+        # Load coatings
+        self.load_coating('SPECTRALON',   "LabSphere's Spectralon®",   't-spectralon.csv')
+        self.load_coating('SPECTRAFLECT', "LabSphere's Spectraflect®", 't-spectraflect.csv')
+        self.load_coating('DIFFGOLD',     "LabSphere's Infragold®",    't-diffuse-gold.csv')
+
         # Load lamps
         self.load_lamp("150W",     "lamp-spectrum.csv", 2 * 150, "2x150 W continuum lamp with adjustable power")
         self.load_lamp("Arc lamp", "lamp-line-spectrum.csv", 100, "100 W arc lamp for line calibration")
@@ -524,6 +538,9 @@ class Parameters():
 
         self.add_arc_lamps()
 
+        # Load fibers for lamps
+        self.load_fiber("Thorlabs® M35L01", "THORLABS_M35L01.csv")
+        
         # Load passband filters for the different gratings
         self.load_filter("H (high)",  "t-h-high.csv")
         self.load_filter("H",         "t-h.csv")

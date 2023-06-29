@@ -50,6 +50,8 @@ import radiosim.AttenuatedSpectrum
 import radiosim.ISRadianceSpectrum
 import radiosim.IsotropicRadiatorSpectrum
 import radiosim.OverlappedSpectrum
+import radiosim.AttenuatedPowerSpectrum
+import radiosim.CompoundResponse
 
 class SimUI(QObject):
     def __init__(self, *args, **kwargs):
@@ -158,7 +160,19 @@ class SimUI(QObject):
                 intensity = int(255 - config.attenuation * 2.55)
                 color     = '#ffffff' if intensity < 127 else '#000000'
                 fillcolor = fr'#{intensity:02x}{intensity:02x}00'
-                graph += f'{lamp_node} [shape=ellipse, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
+
+                if self.config.cal_select:
+                    respPerM      = self.params.get_fiber(config.fiber)
+                    fiberResponse = radiosim.CompoundResponse()
+                    fiberResponse.push_front(respPerM)
+                    fiberResponse.set_multiplicity(config.fiber_length)
+                    ffill, ftext   = fiberResponse.calc_color_lazy()
+
+                    graph += f'{lamp_node}_lamp [shape=ellipse, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
+                    graph += f'{lamp_node} [shape=rectangle, fillcolor="{ffill}", color="{ftext}", label="{config.fiber}\n{config.fiber_length:.2g} m"];\n'
+                    graph += f'{lamp_node}_lamp -> {lamp_node};\n'
+                else:
+                    graph += f'{lamp_node} [shape=rectangle, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
 
         coating = self.get_selected_coating()
         color = coating._color
@@ -244,7 +258,14 @@ class SimUI(QObject):
                     if config.power is not None:
                         lamp_spectrum.adjust_power(config.power)
                     lamp_radiator.set_attenuation(config.attenuation * 1e-2)
-                    sphere.push_spectrum(lamp_radiator)
+
+                    # Add fiber effect
+                    response = self.params.get_fiber(config.fiber)
+                    fiber_spectrum = radiosim.AttenuatedPowerSpectrum(lamp_radiator)
+                    fiber_spectrum.push_filter(response)
+                    fiber_spectrum.set_multiplicity(config.fiber_length)
+                    
+                    sphere.push_spectrum(fiber_spectrum)
 
         # The "attenuated spectrum" is what is going to determine how much flux
         # is extracted from the sphere's output. The "set_fnum" will determine 

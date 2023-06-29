@@ -39,7 +39,8 @@ class PowerSpectrum(ABC):
         self.power        = None
         self.power_factor = 1
         self.attenuation  = 0
-
+        self.native_wl    = None
+    
     def set_nominal_power_rating(self, power):
           self.power = power
           self.power_factor = 1

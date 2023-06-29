@@ -234,7 +234,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         # Add lamps
         for lamp in lamps:
             params = self.params.get_lamp_params(lamp)
-            widget = LampControlWidget(lamp, params)
+            widget = LampControlWidget(lamp, params, self.params)
 
             if params[0].test_role('cal'):
                 self.lampLayout.insertWidget(-1, widget)
@@ -707,6 +707,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
             config.save_to_file(name)
             self.filename = os.path.basename(name)
             self.changes = False
+            self.update_title()
         except Exception as e:
             QMessageBox.critical(self, 'Cannot save file', 'Failed to save file: ' + str(e))
             return False

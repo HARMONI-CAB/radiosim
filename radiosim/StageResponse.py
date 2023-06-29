@@ -44,8 +44,12 @@ class StageResponse(ABC):
 
         self._label = label
         self._name  = name
+        self._exp   = 1
 
         self.calc_color_lazy()
+
+    def set_multiplicity(self, exp):
+        self._exp = exp
 
     def get_entrance_node_name(self):
         return self._name
@@ -93,6 +97,8 @@ class StageResponse(ABC):
         self._color = fr'#{red:02x}{green:02x}{blue:02x}'
         self._text  = '#000000' if intens > 0.4 else '#ffffff'
 
+        return self._color, self._text
+        
     def get_graphviz(self):
         return fr'{self._name} [shape=rectangle, width=2, fillcolor="{self._color}", fontcolor="{self._text}", label="{self._label}", labelangle=90 ];'
 
@@ -104,14 +110,22 @@ class StageResponse(ABC):
         if len(wl_matrix.shape) != 1:
             raise Exception("High-order tensors not yet supported")
         
-        return np.apply_along_axis(self.get_t, 1, wl_matrix)
-
-    def t(self, wl):
-        if isinstance(wl, np.ndarray):
-            return self.get_t_matrix(wl)
+        if self._exp == 1:
+            return np.apply_along_axis(self.get_t, 1, wl_matrix)
         else:
-            return self.get_t(wl)
-    
+            return np.apply_along_axis(self.get_t, 1, wl_matrix) ** self._exp
+    def t(self, wl):
+        if self._exp == 1:
+            if isinstance(wl, np.ndarray):
+                return self.get_t_matrix(wl)
+            else:
+                return self.get_t(wl)
+        else:
+            if isinstance(wl, np.ndarray):
+                return self.get_t_matrix(wl) ** self._exp
+            else:
+                return self.get_t(wl) ** self._exp
+        
     def apply(self, wl, spectrum = None):
         if isinstance(wl, np.ndarray):
             if spectrum is None:
@@ -129,9 +143,16 @@ class StageResponse(ABC):
                     raise Exception("Wavelength and spectrum arrays size mismatch")
 
                 # Just a product
-                return self.get_t_matrix(wl) * spectrum
+                if self._exp == 1:
+                    return self.get_t_matrix(wl) * spectrum
+                else:
+                    return (self.get_t_matrix(wl) ** self._exp) * spectrum
+            
         elif isinstance(wl, float) and isinstance(spectrum, float):
-            return self.get_t(wl) * spectrum
+            if self._exp == 1:
+                return self.get_t(wl) * spectrum
+            else:
+                return (self.get_t(wl) ** self._exp) * spectrum
         else:
             raise Exception("Invalid combination of wavelength and spectrum parameter types ({0} and {1})".format(str(type(wl)), str(type(spectrum))))
 

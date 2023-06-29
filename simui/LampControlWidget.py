@@ -38,24 +38,23 @@ import pathlib
 class LampControlWidget(QtWidgets.QWidget):
     changed = pyqtSignal()
 
-    def __init__(self, name, lampParams, *args, **kwargs):
+    def __init__(self, name, lampParams, params, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         dir = pathlib.Path(__file__).parent.resolve()
         uic.loadUi(fr"{dir}/LampControl.ui", self)
 
+        self.params   = params
         self.spectrum = lampParams[0]
         self.calmode  = self.spectrum.test_role('cal')
         self.lampGroupBox.setTitle(name)
         self.powerAdjustable = self.spectrum.is_adjustable()
         self.isPowerSource = issubclass(type(self.spectrum), PowerSpectrum)
 
-        self.attenPfx.setVisible(self.calmode)
-        self.attenSlider.setVisible(self.calmode)
-        self.attenLabel.setVisible(self.calmode)
+        self.lampControlBox.setVisible(self.calmode)
 
         # Power-defined source: do not show area config
-        if self.isPowerSource or not self.calmode:
+        if self.isPowerSource:
             self.effAreaLabel.setVisible(False)
             self.effAreaSpin.setVisible(False)
         
@@ -70,15 +69,25 @@ class LampControlWidget(QtWidgets.QWidget):
         else:
             self.powerLabel.setVisible(False)
             self.lampPowerSpin.setVisible(False)
-        
+
+        self.populate_fibers()    
         self.connect_all()
         self.refresh_ui()
+
+    def populate_fibers(self):
+        self.fiberTypeCombo.clear()
+        fibers = self.params.get_fiber_names()
+        for f in fibers:
+            fiber = self.params.get_fiber(f)
+            self.fiberTypeCombo.addItem(f, userData = fiber)
 
     def connect_all(self):
         self.attenSlider.valueChanged.connect(self.on_ui_changed)
         self.lampOnOffButton.toggled.connect(self.on_ui_changed)
         self.lampPowerSpin.valueChanged.connect(self.on_ui_changed)
         self.effAreaSpin.valueChanged.connect(self.on_ui_changed)
+        self.fiberTypeCombo.activated.connect(self.on_ui_changed)
+        self.fiberLengthSpin.valueChanged.connect(self.on_ui_changed)
 
     def is_on(self):
         return self.lampOnOffButton.isChecked()
@@ -99,20 +108,34 @@ class LampControlWidget(QtWidgets.QWidget):
         self.lampOnOffButton.setText(text)
         self.lampPowerSpin.setEnabled(isOn and self.powerAdjustable)
 
+    def set_fiber(self, fiber):
+        index = 0
+        if fiber is not None:
+            index = self.fiberTypeCombo.findText(fiber)
+            if index == -1:
+                raise RuntimeError(fr'Failed to set lamp fiber: UI sync error')
+        
+        self.fiberTypeCombo.setCurrentIndex(index)
+
     def set_config(self, config):
         self.lampOnOffButton.setChecked(config.is_on)
         if config.power is not None and self.powerAdjustable:
             self.lampPowerSpin.setValue(config.power)
         self.attenSlider.setValue(config.attenuation)
         self.effAreaSpin.setVale(config.effective_area * 1e4)
+        
+        self.set_fiber(config.fiber)
+        self.fiberLengthSpin.setValue(config.fiber_length)
 
     def get_config(self):
         config = LampConfig()
 
-        config.is_on = self.lampOnOffButton.isChecked()
-        config.power = self.lampPowerSpin.value() if self.powerAdjustable else None
-        config.attenuation = self.attenSlider.value()
+        config.is_on          = self.lampOnOffButton.isChecked()
+        config.power          = self.lampPowerSpin.value() if self.powerAdjustable else None
+        config.attenuation    = self.attenSlider.value()
         config.effective_area = self.effAreaSpin.value() * 1e-4
+        config.fiber          = self.fiberTypeCombo.currentText()
+        config.fiber_length   = self.fiberLengthSpin.value()
 
         return config
 

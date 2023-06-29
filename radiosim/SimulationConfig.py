@@ -120,13 +120,17 @@ class LampConfig(SerializableConfig):
         self.power             = None
         self.attenuation       = 0
         self.effective_area    = 8e-5
+        self.fiber             = None
+        self.fiber_length      = 1
 
     def save(self):
         self.save_param('is_on')
         self.save_param('power')
         self.save_param('attenuation')
         self.save_param('effective_area')
-
+        self.save_param('fiber')
+        self.save_param('fiber_length')
+        
     def load(self, dict):
         self.load_all(dict)
     
