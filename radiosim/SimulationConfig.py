@@ -130,7 +130,7 @@ class LampConfig(SerializableConfig):
         self.save_param('effective_area')
         self.save_param('fiber')
         self.save_param('fiber_length')
-        
+
     def load(self, dict):
         self.load_all(dict)
     
@@ -258,7 +258,7 @@ class SimulationConfig(SerializableConfig):
         self.save_param('detector_config')
 
         self.telescope.save()
-        self.telescope_config = self.detector.as_dict()
+        self.telescope_config = self.telescope.as_dict()
         self.save_param('telescope_config')
 
     def load(self, dict):
