@@ -44,15 +44,16 @@ class InterpolatedResponse(StageResponse.StageResponse):
         
         resp[:, 0] *= 1e-6 # Adjust units from µm to m
 
-        self.interpolator = scipy.interpolate.interp1d(
+        self._interp = scipy.interpolate.interp1d(
             resp[:, 0],
             resp[:, 1],
             bounds_error = False,
             fill_value = 0.)
 
     def get_t(self, wl):
-        return self.interpolator(wl).ravel()[0]
+        return self._interp(wl).ravel()[0]
 
     def get_t_matrix(self, wl):
-        return self.interpolator(wl)
+        return self._interp(wl)
         
+    
