@@ -31,6 +31,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import re
+from . import SPEED_OF_LIGHT
+from . import RadianceSpectrum
 
 class StageResponse(ABC):
     _name  = None
@@ -42,11 +44,20 @@ class StageResponse(ABC):
         name = re.sub('[^0-9a-zA-Z_]', '', label)
         name = re.sub('^[^a-zA-Z_]+', '', name)
 
-        self._label = label
-        self._name  = name
-        self._exp   = 1
+        self._label      = label
+        self._name       = name
+        self._exp        = 1
+        self._em_mul     = 1
+        self._T          = 273.15
+        self._black_body = RadianceSpectrum()
 
         self.calc_color_lazy()
+
+    def set_temp(self, T):
+        self._T     = T
+    
+    def set_emission_multiplier(self, k):
+        self._em_mul = k
 
     def set_multiplicity(self, exp):
         self._exp = exp
@@ -98,7 +109,7 @@ class StageResponse(ABC):
         self._text  = '#000000' if intens > 0.4 else '#ffffff'
 
         return self._color, self._text
-        
+
     def get_graphviz(self):
         return fr'{self._name} [shape=rectangle, width=2, fillcolor="{self._color}", fontcolor="{self._text}", label="{self._label}", labelangle=90 ];'
 
@@ -166,3 +177,10 @@ class StageResponse(ABC):
         result = np.sum(resp) * dw
 
         return result
+
+    def calc_thermal_emission(self, wl = None, nu = None):
+        black_body = self._black_body.planck(wl, nu, self._T)
+        if wl is None:
+            wl = SPEED_OF_LIGHT / nu
+
+        return (1 - self.t(wl)) * black_body
