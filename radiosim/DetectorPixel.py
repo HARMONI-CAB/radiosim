@@ -28,36 +28,48 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-import numpy as np
+from abc import ABC, abstractmethod
 
-from . import PowerSpectrum
-from . import WIEN_B
-from . import SPEED_OF_LIGHT
+class DetectorPixel(ABC):
+    def __init__(self):
+        pass
 
-class IsotropicRadiatorSpectrum(PowerSpectrum):
-    def __init__(self, area, radiance):
-        super().__init__()
-        self.radiance = radiance
-        self.radiance_to_power = np.pi * area
-        
-    def get_max_wl(self):
-        return self.radiance.get_max_wl(self)
-    
-    def get_max_nu(self):
-        return self.radiance.get_max_nu()
-    
-    def get_PSD(self, wl):
-        return self.radiance.I(wl) * self.radiance_to_power
+    @abstractmethod
+    def electronRatePerPixel(self, photons, wl = None, nu = None):
+        """
+        Accepts a photon field and produces an electron rate per pixel. This
+        calculation involves sensitivity of the pixel, dark currents, et caetera.
+        """
+        pass
 
-    def get_PSD_matrix(self, wl):
-        return self.radiance.I(wl) * self.radiance_to_power
+    @abstractmethod
+    def electronsPerPixel(self, e_rate, wl = None, nu = None, t = 1, disable_noise = False):
+        """
+        Accepts an electron rate per pixel, an integration time, and produces a
+        total number of electrons. This also accounts for saturation of the
+        pixel
+        """
+        pass
+
+    @abstractmethod
+    def countsPerPixel(self, electrons, wl = None, nu = None):
+        """
+        Accepts the number of electrons and produces an ADU count. This takes into account
+        non-linear effects of the ADU electrons, amplifier noise and others.
+        """
+        pass
+
+    @abstractmethod
+    def ron(self, t):
+        """
+        Accepts the exposure time and returns the readout noise, in electron. The exposure
+        time may be either a scalar or an array.
+        """
+        pass
     
-    def adjust_power(self, power):
-        self.radiance.adjust_power(power)
-    
-    def integrate_power(self, wl_min = .45e-6, wl_max = 2.4e-6, N = 1000):
-        wl   = np.linspace(wl_min, wl_max, N + 1)
-        dWl  = wl[1] - wl[0]
-        psds = self.get_PSD_matrix(wl)
-        trap = .5 * (psds[:-1] + psds[1:]) * dWl
-        return np.sum(trap)
+    @abstractmethod
+    def gain(self):
+        """
+        Returns the gain of the ADU, in electrons per count.
+        """
+        pass

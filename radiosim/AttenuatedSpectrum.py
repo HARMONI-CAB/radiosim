@@ -34,12 +34,12 @@ from radiosim.SpectrumPainter import SPEED_OF_LIGHT
 from . import RadianceSpectrum
 from . import CompoundResponse
 
-class AttenuatedSpectrum(RadianceSpectrum.RadianceSpectrum):
+class AttenuatedSpectrum(RadianceSpectrum):
     def __init__(self, sourceSpectrum):
         super().__init__()
 
         self.sourceSpectrum = sourceSpectrum
-        self.filters        = CompoundResponse()
+        self.filters        = CompoundResponse.CompoundResponse()
         self.max_wl         = -1
         self.attenuation    = 0. # From 0 to 1
 
@@ -63,14 +63,18 @@ class AttenuatedSpectrum(RadianceSpectrum.RadianceSpectrum):
         super().set_spaxel(x, y)
         self.sourceSpectrum.set_spaxel(x, y)
     
-    # TODO: take emissivity of each intermediate filter into account
+    # Different elements introduce different irradiances due to differences
+    # in their f/#. What we do to handle this is to compute an equivalent 
+    # radiance from the irradiance we get, according to our f/#
     def get_I(self, wl):
-        alpha = (1. - self.attenuation) * self.sourceSpectrum.power_factor
-        return self.filters.apply(wl, alpha * self.sourceSpectrum.get_I(wl))
+        alpha = 1. - self.attenuation
+        k     = 1 / self.to_irradiance
+        return k * self.filters.apply(wl, alpha * self.sourceSpectrum.E(wl))
 
     def get_I_matrix(self, wl):
-        alpha = (1. - self.attenuation) * self.sourceSpectrum.power_factor
-        return self.filters.apply(wl, alpha * self.sourceSpectrum.get_I_matrix(wl))
+        alpha = 1. - self.attenuation
+        k     = 1 / self.to_irradiance
+        return k * self.filters.apply(wl, alpha * self.sourceSpectrum.E(wl))
 
     def get_max_wl(self):
         if self.max_wl < 0:

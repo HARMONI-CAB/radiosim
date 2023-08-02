@@ -30,9 +30,10 @@
 
 import numpy as np
 from . import RadianceSpectrum
+from . import SPEED_OF_LIGHT
 import scipy.interpolate
 
-class InterpolatedSpectrum(RadianceSpectrum.RadianceSpectrum):
+class InterpolatedSpectrum(RadianceSpectrum):
     def __init__(self, file = None, response = None, SI = False):
         super().__init__()
         
@@ -63,7 +64,7 @@ class InterpolatedSpectrum(RadianceSpectrum.RadianceSpectrum):
             fill_value = 0.)
 
         # Calculate max_nu
-        nu = RadianceSpectrum.SPEED_OF_LIGHT / resp[:, 0]
+        nu = SPEED_OF_LIGHT / resp[:, 0]
         max_ndx = np.argmax(self.I(nu = nu))
         self.max_nu = nu[max_ndx]
 

@@ -32,7 +32,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import re
 from . import SPEED_OF_LIGHT
-from . import RadianceSpectrum
+from . import BlackBodySpectrum, PowerSpectrum
 
 class StageResponse(ABC):
     _name  = None
@@ -40,27 +40,50 @@ class StageResponse(ABC):
     _color = '#d0d0d0'
     _text  = '#000000'
 
+    def __init__(self):
+        self._name       = "NO_NAME"
+        self._label      = "NO LABEL"
+        self._exp        = 1
+        self._em_mul     = 1
+        self._T          = 273
+        self._black_body = BlackBodySpectrum(self._T)
+        self._background = True
+        self._fnum_set   = False
+
+    def set_background(self, enabled):
+        self._background = enabled
+    
     def set_label(self, label):
         name = re.sub('[^0-9a-zA-Z_]', '', label)
         name = re.sub('^[^a-zA-Z_]+', '', name)
-
-        self._label      = label
         self._name       = name
-        self._exp        = 1
-        self._em_mul     = 1
-        self._T          = 273.15
-        self._black_body = RadianceSpectrum()
+        self._label      = label
+        if self._fnum_set:
+            self.calc_color_lazy()
 
+    def set_fnum(self, fnum):
+        self._black_body.set_fnum(fnum)
+        self._fnum_set = True
         self.calc_color_lazy()
 
-    def set_temp(self, T):
+    def get_label(self):
+        return self._label
+    
+    def set_temperature(self, T):
         self._T     = T
+        self._black_body.set_temperature(self._T)
+
+    def get_temperature(self):
+        return self._T
     
     def set_emission_multiplier(self, k):
         self._em_mul = k
 
     def set_multiplicity(self, exp):
         self._exp = exp
+
+    def get_multiplicity(self):
+        return self._exp
 
     def get_entrance_node_name(self):
         return self._name
@@ -111,7 +134,7 @@ class StageResponse(ABC):
         return self._color, self._text
 
     def get_graphviz(self):
-        return fr'{self._name} [shape=rectangle, width=2, fillcolor="{self._color}", fontcolor="{self._text}", label="{self._label}", labelangle=90 ];'
+        return fr'{self._name} [shape=rectangle, width=2, fillcolor="{self._color}", fontcolor="{self._text}", label=<     {self._label}<br/><font point-size="7">T = {self._T - 273.15:.3g}º C</font>>, labelangle=90 ];'
 
     @abstractmethod
     def get_t(self, wl):
@@ -120,11 +143,8 @@ class StageResponse(ABC):
     def get_t_matrix(self, wl_matrix):
         if len(wl_matrix.shape) != 1:
             raise Exception("High-order tensors not yet supported")
-        
-        if self._exp == 1:
-            return np.apply_along_axis(self.get_t, 1, wl_matrix)
-        else:
-            return np.apply_along_axis(self.get_t, 1, wl_matrix) ** self._exp
+        return np.apply_along_axis(self.get_t, 1, wl_matrix)
+
     def t(self, wl):
         if self._exp == 1:
             if isinstance(wl, np.ndarray):
@@ -137,14 +157,35 @@ class StageResponse(ABC):
             else:
                 return self.get_t(wl) ** self._exp
         
-    def apply(self, wl, spectrum = None):
+    def apply_array(self, wl, spectrum = None, thermal = True):
+        t = self.t(wl)
+        result = t * spectrum
+
+        # For non-zero temperature: add background
+        if self._T > 0 and self._background:
+            if issubclass(type(spectrum), PowerSpectrum) or not thermal:
+                return result
+            result += (1. - t) * self._black_body.E(wl = wl)    
+        return result
+
+    def apply_scalar(self, wl, spectrum = None, thermal = True):
+        t = self.t(wl)
+        result = t * spectrum
+
+        # For non-zero temperature: add background
+        if self._T > 0 and self._background:
+            if issubclass(type(spectrum), PowerSpectrum) or not thermal:
+                return result
+            result += (1. - t) * self._black_body.E(wl = wl)
+        return result
+
+    def apply(self, wl, spectrum = None, thermal = True):
         if isinstance(wl, np.ndarray):
             if spectrum is None:
                 # Compound call
                 if len(wl.shape) != 2 or wl.shape[0] != 2:
                     raise Exception("Invalid shape for the compound wavelength / spectrum array")
-                
-                return self.apply(wl[0, :], wl[1, :])
+                return self.apply(wl[0, :], wl[1, :], thermal)
             elif isinstance(spectrum, np.ndarray):
                 # Separate call
                 if len(wl.shape) != 1:
@@ -152,18 +193,9 @@ class StageResponse(ABC):
                 
                 if len(wl) != len(spectrum):
                     raise Exception("Wavelength and spectrum arrays size mismatch")
-
-                # Just a product
-                if self._exp == 1:
-                    return self.get_t_matrix(wl) * spectrum
-                else:
-                    return (self.get_t_matrix(wl) ** self._exp) * spectrum
-            
+                return self.apply_array(wl, spectrum, thermal)
         elif isinstance(wl, float) and isinstance(spectrum, float):
-            if self._exp == 1:
-                return self.get_t(wl) * spectrum
-            else:
-                return (self.get_t(wl) ** self._exp) * spectrum
+            return self.apply_scalar(wl, spectrum, thermal)
         else:
             raise Exception("Invalid combination of wavelength and spectrum parameter types ({0} and {1})".format(str(type(wl)), str(type(spectrum))))
 
@@ -177,10 +209,3 @@ class StageResponse(ABC):
         result = np.sum(resp) * dw
 
         return result
-
-    def calc_thermal_emission(self, wl = None, nu = None):
-        black_body = self._black_body.planck(wl, nu, self._T)
-        if wl is None:
-            wl = SPEED_OF_LIGHT / nu
-
-        return (1 - self.t(wl)) * black_body

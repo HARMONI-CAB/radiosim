@@ -37,16 +37,20 @@ from numpy.random import default_rng
 from . import SPEED_OF_LIGHT
 from . import PLANCK_CONSTANT
 from . import StageResponse
+from .DetectorPixel import DetectorPixel
+
 from scipy.special import erf
 
 class TExpSimulator:
     def __init__(self, det, wl, count_limit, N = 1000):
+        if isinstance(wl, float):
+            wl = np.array([wl])
+        
         self.det         = det
         self.Ie          = self.det.electronRatePerPixel(wl = wl)
         self.texp_approx = self.det.getMaxTexp(wl = wl, count_limit = count_limit)[0]
         self.texp_min    = np.max([0., self.texp_approx - self.texp_approx ** .5])
         self.texp_max    = self.texp_approx + self.texp_approx ** .5
-        self.sigma       = self.det.ron / self.det.G
         self.t_exp       = np.linspace(self.texp_min, self.texp_max, N)
         self.p           = np.zeros(N)
         self.i           = 0
@@ -87,14 +91,15 @@ class TExpSimulator:
         i = self.i
         while i < self.N and (time.perf_counter() - start) * 1e3 < timeout_ms:
             t = self.t_exp[i]
+            sigma = self.det.ron(t) / self.det.gain()
             rate = self.Ie * t
-            max  = int(np.ceil(rate))
+            max  = 5 * int(np.ceil(rate))
             nes  = np.linspace(0, max, max + 1)
-            mus  = nes / self.det.G
+            mus  = nes / self.det.gain()
             
             self.p[i] = np.dot(
                 self.poissonDistribution(nes, rate),
-                self.normalInt(self.ca, self.cb, sigma = self.sigma, mu = mus))
+                self.normalInt(self.ca, self.cb, sigma = sigma, mu = mus))
             i += 1
 
         self.i = i
@@ -115,26 +120,27 @@ class TExpSimulator:
 class DetectorSimulator:
     def __init__(
         self,
+        pixel: DetectorPixel = None,
         spectrum = None,
-        A_sp = 15e-6,
+        area = 980,
         pxPerDeltaL = 2.2,
-        R = 18000,
-        QE = .95,
         binning = 1,
-        G = 1,
-        poisson = False,
-        ron = 5):
-        self.A_sp        = A_sp
+        R = 18000,
+        debug_etendue = False):
+        self.area        = area
         self.pxPerDeltaL = pxPerDeltaL
         self.spectrum    = spectrum
         self.R           = R
-        self.QE          = QE
+        self.pixel       = pixel
         self.binning     = binning
-        self.G           = G
-        self.poisson     = poisson
-        self.rng         = default_rng()
-        self.ron         = ron
 
+        if debug_etendue:
+            omega = spectrum.get_Omega() * (180 * 3600 / np.pi) ** 2
+            print(fr"Provided area: {area:.2g} m^2")
+            print(fr"Provided Omega: {omega:.2g} arcsec^2")
+            etendue = area * omega
+            print(fr"Detector étendue: {etendue} m²arcsec²")
+        
     def assert_spectrum(self):
         if self.spectrum is None:
             raise Exception("No spectrum was defined")
@@ -145,8 +151,17 @@ class DetectorSimulator:
     def set_spectrum(self, spectrum):
         self.spectrum = spectrum
 
-    # Returns attenuated? flux (W/(m^2 m))
+    def get_I(self, wl = None, nu = None, atten = True):
+        """Returns attenuated? radiance (W/(m^2 m sr))"""
+        if atten:
+            spectrum = self.spectrum
+        else:
+            spectrum = self.spectrum.get_source_spectrum()
+        
+        return spectrum.I(wl = wl, nu = nu)
+
     def get_E(self, wl = None, nu = None, atten = True):
+        """Returns attenuated? flux (W/(m^2 m))"""
         if atten:
             spectrum = self.spectrum
         else:
@@ -154,38 +169,69 @@ class DetectorSimulator:
         
         return spectrum.E(wl = wl, nu = nu)
     
-    # Returns attenuated? photon flux (photons/(m^2 m))
+    def get_photon_radiance(self, wl = None, nu = None, atten = True):
+        """Returns attenuated? photon radiance (photons/(m^2 m sr))"""
+        return self.get_I(wl = wl, nu = nu, atten = atten) / self.E_p(wl, nu)
+
     def get_photon_flux(self, wl = None, nu = None, atten = True):
+        """Returns attenuated? photon flux (photons/(m^2 m))"""
         return self.get_E(wl = wl, nu = nu, atten = atten) / self.E_p(wl, nu)
     
-    # Returns attenuated flux per spaxel (T_h * T_d * \Phi_{sp})
-    # This is actually a spectral density (W/m)
-    def attenFluxPerSpaxel(self, wl = None, nu = None):
+    def fluxPerSpaxel(self, wl = None, nu = None, atten = True):
+        """
+        Returns attenuated flux per spaxel (T_h * T_d * \Phi_{sp})
+        This is actually a spectral density (W/m)
+        """
         self.assert_spectrum()
-        return self.spectrum.E(wl = wl, nu = nu) * self.A_sp
+        return self.get_E(wl = wl, nu = nu, atten = atten) * self.area
 
-    # Returns band dispersion (D_h). This is actually \Delta\lambda
-    # across the spectral dimension
     def Dh(self, wl = None, nu = None):
+        """
+        Returns band dispersion (D_h). This is actually \\Delta\\lambda
+        (m) or \\Delta\\nu (Hz) across the spectral dimension 
+        """
         self.assert_spectrum()
 
-        if wl is None:
-            if nu is None:
-                raise Exception("Either frequency or wavelength must be provided")
-            wl = SPEED_OF_LIGHT / nu
+        #
+        # Note that, since resolution must not depend on units:
+        #
+        # R = lambda / dLambda = nu / dNu
+        #
+        # dLambda = lambda / R
+        # dNu     = nu     / R
+        #
+        # Now, as a consequence of the dispersion and since each pixel must
+        # nyquist-sample each wavelength (frequency) by pxPerDeltaL (e.g. 2.2),
+        # each resolution element dLambda (dNu) gets projected on 2.2 pixels.
+        #
+        # This means that each pixel spans dLambda / 2.2 (dNu / 2.2)
+        #
+
+        axis = wl if wl is not None else nu
+        if isinstance(axis, tuple) or isinstance(axis, list):
+            axis = np.array(axis)
+        elif isinstance(axis, float):
+            axis = np.array([axis])
         
-        return wl / (self.pxPerDeltaL * self.R)
+        res  = np.ones(axis.shape) * (axis[0] + axis[-1]) / (2 * self.R)
+        return res / (self.pxPerDeltaL)
 
-    # Returns incident spectral flux per pixel (\Phi_{px})
-    # Please note this has units of W!! This is NOT a spectral density (W)
-    def integratedFluxPerPixel(self, wl = None, nu = None):
+    def integratedFluxPerPixel(self, wl = None, nu = None, atten = True):
+        """
+        Returns incident spectral flux per pixel (\Phi_{px})
+        Please note this has units of W!! This is NOT a spectral density (W/m)
+        """
         self.assert_spectrum()
 
-        # According to HRM-00509, \Phi_{px} is computed as T_h * T_d * D_h * \Phi_{sp}
-        return self.Dh(wl = wl, nu = nu) * self.attenFluxPerSpaxel(wl = wl, nu = nu)
+        # According to HRM-00509, \Phi_{px} is computed as T        pass_h * T_d * D_h * \Phi_{sp}
+        Dh = self.Dh(wl = wl, nu = nu)
 
-    # Returns photon energy
+        return Dh * self.fluxPerSpaxel(wl = wl, nu = nu, atten = atten)
+
     def E_p(self, wl = None, nu = None):
+        """
+        Returns photon energy
+        """
         if nu is None:
             if wl is None:
                 raise Exception("Either frequency or wavelength must be provided")
@@ -193,11 +239,13 @@ class DetectorSimulator:
         
         return PLANCK_CONSTANT * nu
 
-    # Returns incident spectral flux per pixel, in photons
-    def photonFluxPerPixel(self, wl = None, nu = None):
+    def photonFluxPerPixel(self, wl = None, nu = None, atten = True):
+        """
+        Returns incident spectral flux per pixel, in photons
+        """
         self.assert_spectrum()
 
-        ret = self.integratedFluxPerPixel(wl = wl, nu = nu) / self.E_p(wl = wl, nu = nu)
+        ret = self.integratedFluxPerPixel(wl = wl, nu = nu, atten = atten) / self.E_p(wl = wl, nu = nu)
         nans = np.isnan(ret)
 
         if len(nans.shape) > 0:
@@ -205,39 +253,33 @@ class DetectorSimulator:
         
         return ret
 
-    # Returns the generated photoelectron rate
     def electronRatePerPixel(self, wl = None, nu = None):
+        """
+        Returns the generated photoelectron rate
+        """
         self.assert_spectrum()
-        
-        if isinstance(self.QE, float):
-            rate = self.QE * self.photonFluxPerPixel(wl = wl) * self.binning
-        elif isinstance(self.QE, StageResponse):
-            rate = self.QE.apply(self.spectrum) * self.binning
-        else:
-            raise Exception("Unknown data type for QE (" + str(type(self.QE)) + ")")
+        photons = self.photonFluxPerPixel(wl = wl, nu = nu) * self.binning
+        return self.pixel.electronRatePerPixel(photons, wl, nu)
 
-        return rate
-
-    # Returns the actual number of generated photoelectrons after some time
     def electronsPerPixel(self, wl = None, nu = None, t = 1, disable_noise = False):
-        e = t * self.electronRatePerPixel(wl, nu)
+        """
+        Returns the number of electrons per pixel
+        """
+        rate = self.electronRatePerPixel(wl, nu)
+        return self.pixel.electronsPerPixel(rate, wl, nu, t, not disable_noise)
 
-        e[np.where(e < 0)] = 0
-
-        if self.poisson and not disable_noise:
-            e = self.rng.poisson(lam = e)
-        
-        return e
-
-    # Returns simulated counts
     def countsPerPixel(self, wl = None, nu = None, t = 1, disable_noise = False):
-        e = self.electronsPerPixel(wl = wl, nu = nu, t = t, disable_noise = disable_noise)
-
-        if not disable_noise:
-            e = self.rng.normal(loc = e, scale = self.ron)
-            return np.round(e / self.G)
-
-        return e / self.G
+        """
+        Returns the simulated number of counts per pixel
+        """
+        electrons = self.electronsPerPixel(wl, nu, t, disable_noise)
+        return self.pixel.countsPerPixel(electrons, wl, nu, not disable_noise)
+    
+    def ron(self, t):
+        return self.pixel.ron(t)
+    
+    def gain(self):
+        return self.pixel.gain()
     
     # Compute max texp:
     def getMaxTexp(self, wl = None, nu = None, count_limit = 20000):
@@ -260,11 +302,12 @@ class DetectorSimulator:
         else: # Vector case
             max_ndx = np.argmax(counts)
             max_count = counts[max_ndx]
+
             if wl is not None:
-                max_lambda = wl[max_count]
+                max_lambda = wl[max_ndx]
                 max_nu     = SPEED_OF_LIGHT / max_lambda
             elif nu is not None:
-                max_nu     = nu[max_count]
+                max_nu     = nu[max_ndx]
                 max_lambda = SPEED_OF_LIGHT / max_nu
         
         if max_count == 0.:

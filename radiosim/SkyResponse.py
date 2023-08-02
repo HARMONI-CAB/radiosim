@@ -29,35 +29,49 @@
 #
 
 import numpy as np
+from . import StageResponse
+from scipy.interpolate import RegularGridInterpolator
 
-from . import PowerSpectrum
-from . import WIEN_B
-from . import SPEED_OF_LIGHT
-
-class IsotropicRadiatorSpectrum(PowerSpectrum):
-    def __init__(self, area, radiance):
+class SkyResponse(StageResponse):
+    def __init__(self, file: str, airmass_list: list):
         super().__init__()
-        self.radiance = radiance
-        self.radiance_to_power = np.pi * area
         
-    def get_max_wl(self):
-        return self.radiance.get_max_wl(self)
-    
-    def get_max_nu(self):
-        return self.radiance.get_max_nu()
-    
-    def get_PSD(self, wl):
-        return self.radiance.I(wl) * self.radiance_to_power
+        resp = np.genfromtxt(file, delimiter = ',')
+        # This looks transposed
+        colno = len(airmass_list) + 1
+        if resp.shape[0] == colno and resp.shape[1] != colno:
+            resp = resp.transpose()
+        
+        if resp.shape[1] != colno:
+          raise RuntimeError(fr'Number of columns of {file} does not match airmass len')
+        
+        resp[:, 0] *= 1e-6 # Adjust units from µm to m
 
-    def get_PSD_matrix(self, wl):
-        return self.radiance.I(wl) * self.radiance_to_power
+        self._interp = RegularGridInterpolator(
+          (resp[:, 0], airmass_list),
+          resp[:, 1:],
+          bounds_error = False,
+          fill_value = None) # Extrapolate
+        
+        self._airmass_list = airmass_list
+        self._t_scale = 1
+        self._airmass = airmass_list[0]
+        self.set_temperature(0)
+      
+    def set_airmass(self, airmass):
+        if airmass < self._airmass_list[0]:
+            self._airmass = self._airmass_list[0]
+        elif airmass > self._airmass_list[-1]:
+            self._airmass = self._airmass_list[-1]
+        else:
+            self._airmass = airmass
+
+        self._t_scale = airmass / self._airmass
+        
+    def get_t(self, wl):
+        return self._t_scale * self._interp((wl, self._airmass)).ravel()[0]
+
+    def get_t_matrix(self, wl):
+        return self._t_scale * self._interp((wl, self._airmass))
+        
     
-    def adjust_power(self, power):
-        self.radiance.adjust_power(power)
-    
-    def integrate_power(self, wl_min = .45e-6, wl_max = 2.4e-6, N = 1000):
-        wl   = np.linspace(wl_min, wl_max, N + 1)
-        dWl  = wl[1] - wl[0]
-        psds = self.get_PSD_matrix(wl)
-        trap = .5 * (psds[:-1] + psds[1:]) * dWl
-        return np.sum(trap)

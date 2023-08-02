@@ -36,7 +36,7 @@ import scipy.interpolate
 DEFAULT_DUST_EMI = 0.5    # Grey Dust covering on some optics (50% emissivity)
 DEFAULT_MIN_DUST = 0.005  # 0.5% dust on optical surfaces - won't be perfectly clean
 
-class InstrumentPartResponse(StageResponse.StageResponse):
+class InstrumentPartResponse(StageResponse):
     def __init__(
       self,
       temp: float,
@@ -47,16 +47,18 @@ class InstrumentPartResponse(StageResponse.StageResponse):
       dust_mirror: float    = DEFAULT_MIN_DUST,
       global_scaling: float = 1.,
       emis_scaling: float   = 1.,
-      emis_mirror: str      = None,
-      emis_lens: str        = None,
+      emis_mirror           = None,
+      emis_lens             = None,
+      t_mirror              = None,
+      t_lens                = None,
       emis_dust: float      = DEFAULT_DUST_EMI
     ):
         super().__init__()
         
-        if emis_mirror is None:
+        if emis_mirror is None and t_mirror is None:
           n_mirrors = 0
         
-        if emis_lens is None:
+        if emis_lens is None and t_lens is None:
           n_lenses = 0
 
         self._area_scaling    = area_scaling
@@ -70,14 +72,35 @@ class InstrumentPartResponse(StageResponse.StageResponse):
 
         # Setup mirror response interpolator
         if n_mirrors > 0:
-            self._mirror_interp = self.load_emissivity(emis_mirror)
+            if type(t_mirror) is str:
+              self._mirror_interp = self.load_throughput(t_mirror)
+            elif type(t_mirror) is float:
+              self._mirror_interp = self.flat_throughput(t_mirror)
+            elif type(emis_mirror) is str:
+              self._mirror_interp = self.load_emissivity(emis_mirror)
+            elif type(emis_mirror) is float:
+              self._mirror_interp = self.flat_emissivity(emis_mirror)
 
         if n_lenses > 0:
-            self._lens_interp   = self.load_emissivity(emis_lens)
+            if type(t_lens) is str:
+              self._lens_interp   = self.load_throughput(t_lens)
+            elif type(t_lens) is float:
+              self._lens_interp   = self.flat_throughput(t_lens)
+            elif type(emis_lens) is str:
+              self._lens_interp   = self.load_emissivity(emis_lens)
+            elif type(emis_lens) is float:
+              self._lens_interp   = self.flat_emissivity(emis_lens)
           
         self._t_dust = self.calc_dust_throughtput()
 
-        self.set_temp(temp)
+        self.set_temperature(temp)
+
+    def flat_emissivity(self, level):
+        return scipy.interpolate.interp1d(
+            [400e-9, 2.6e-6],
+            [1 - level, 1 - level],
+            bounds_error=False,
+            fill_value=0)
 
     def load_emissivity(self, filename):
         resp = np.genfromtxt(filename, delimiter = ',')
@@ -97,10 +120,46 @@ class InstrumentPartResponse(StageResponse.StageResponse):
             bounds_error = False,
             fill_value = 0.)
           
+    def flat_throughput(self, level):
+        return scipy.interpolate.interp1d(
+            [400e-9, 2.6e-6],
+            [level, level],
+            bounds_error=False,
+            fill_value=0)
+
+    def load_throughput(self, filename):
+        resp = np.genfromtxt(filename, delimiter = ',')
+
+        # This looks transposed
+        if resp.shape[0] == 2 and resp.shape[1] != 2:
+            resp = resp.transpose()
+      
+        resp[:, 0] *= 1e-6 # Adjust units from µm to m
+
+        return scipy.interpolate.interp1d(
+            resp[:, 0],
+            resp[:, 1],
+            bounds_error = False,
+            fill_value = 0.)
+
+    def set_area_scaling(self, scaling):
+        self._area_scaling = scaling
+      
     def calc_dust_throughtput(self):
         t_mirror = 1. - self._emis_dust * self._fdust_mirror
         t_lens   = 1. - self._emis_dust * self._fdust_lens
         t        = t_mirror ** self._n_mirrors * t_lens ** self._n_lenses
+
+        #
+        # TODO: This is hard-copied from HSIM and it is not well understood.
+        # I am waiting for an explanation by Miguel in order to use this.
+        #
+
+        if self._area_scaling != 1:
+          e        = 1 - t
+          e       *= self._area_scaling
+          t        = 1 - e
+
         return   t
     
     def get_t(self, wl):

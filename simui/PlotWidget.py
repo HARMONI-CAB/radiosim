@@ -32,15 +32,19 @@ from PyQt6 import QtWidgets
 from matplotlib.backends.backend_qtagg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
+from matplotlib.pyplot import setp
 
 class PlotWidget(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         layout = QtWidgets.QVBoxLayout(self)
-
+        self.cycle = 0
+        self.limits = {}
+        self.limits_visible = False
         self.fig = Figure()
         self.fig.tight_layout()
         static_canvas = FigureCanvas(self.fig)
+        
         
         # Ideally one would use self.addToolBar here, but it is slightly
         # incompatible between PyQt6 and other bindings, so we just add the
@@ -60,8 +64,60 @@ class PlotWidget(QtWidgets.QWidget):
         self._static_ax.set_yscale("log" if self.log_scale else "linear")
         self.fig.canvas.draw()
         
-    def plot(self, *args, xlabel = None, ylabel = None, xlim = None, ylim = None, label = None, title = None, **kwargs):
-        self._static_ax.plot(*args, label = label, *kwargs)
+    def draw_limit(self, name: str):
+        plot = self.limits[name][0]
+        if plot is not None:
+            plot.remove()
+
+        xmin   = self.limits[name][1]
+        xmax   = self.limits[name][2]
+        height = self.limits[name][3]
+        self.limits[name][0], = self._static_ax.plot(
+            [xmin, xmax],
+            [height, height],
+            linestyle = 'dashed',
+            color = 'red',
+            zorder = 10)
+        self.fig.tight_layout()
+        self.fig.canvas.draw()
+
+    def set_limits_visible(self, visible: bool):
+        if visible != self.limits_visible:
+            self.limits_visible = visible
+
+            if visible:
+                for name in self.limits:
+                    self.draw_limit(name)
+            else:
+                for name in self.limits:
+                    plot = self.limits[name][0]
+                    if plot is not None:
+                        plot.remove()
+                    plot = self.limits[name][0] = None
+        
+    def set_limit(self, name: str, xmin: float, xmax: float, height: float):
+        if name in self.limits:
+            self.limits[name][1] = xmin
+            self.limits[name][2] = xmax
+            self.limits[name][3] = height
+        else:
+            self.limits[name] = [None, xmin, xmax, height]
+        
+        if self.limits_visible:
+            self.draw_limit(name)
+    
+    def plot(self, *args, xlabel = None, ylabel = None, xlim = None, ylim = None, label = None, title = None, stem = False, **kwargs):
+        if stem:
+            linefmt = fr'C{self.cycle}-'
+            basefmt = fr'C{self.cycle}-'
+            markerfmt = fr'C{self.cycle}o'
+            self.cycle += 1
+            markerline, stemline, baseline, = self._static_ax.stem(*args, linefmt = linefmt, markerfmt = markerfmt, basefmt = basefmt, label = label, *kwargs)
+            setp(stemline, linewidth = .5)
+            setp(baseline, linewidth = 1.25)
+            setp(markerline, markersize = 2.5)
+        else:
+            self._static_ax.plot(*args, label = label, *kwargs)
         if xlabel is not None:
             self._static_ax.set_xlabel(xlabel)
         if ylabel is not None:
@@ -80,4 +136,6 @@ class PlotWidget(QtWidgets.QWidget):
         self.fig.canvas.draw()
 
     def clear(self):
+        self.cycle = 0
+        self.limits = {}
         self._static_ax.cla()

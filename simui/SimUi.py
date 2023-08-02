@@ -41,8 +41,7 @@ import radiosim.DetectorSimulator
 from radiosim.DetectorSimulator import TExpSimulator
 from radiosim import SPEED_OF_LIGHT
 from radiosim.Parameters import \
-    HARMONI_FINEST_SPAXEL_SIZE, HARMONI_PX_PER_SP_ALONG, \
-    HARMONI_PX_PER_SP_ACROSS, HARMONI_PX_AREA
+    HARMONI_FINEST_SPAXEL_SIZE, HARMONI_INST_FNUM
 
 import radiosim.AllPassResponse
 import radiosim.PowerSpectrum
@@ -52,6 +51,9 @@ import radiosim.IsotropicRadiatorSpectrum
 import radiosim.OverlappedSpectrum
 import radiosim.AttenuatedPowerSpectrum
 import radiosim.CompoundResponse
+import radiosim.CCDPixel
+
+ARCSEC2_PER_SR = (180 * 3600 / np.pi) ** 2
 
 class SimUI(QObject):
     def __init__(self, *args, **kwargs):
@@ -79,7 +81,7 @@ class SimUI(QObject):
         self.window.set_config(self.config)
 
     def run_texp_simulation(self):
-        self.simulate_spectrum()
+        self.create_simulator()
         
         if self.config.texp_use_band:
             grating = self.params.get_grating(self.config.texp_band)
@@ -94,7 +96,7 @@ class SimUI(QObject):
         
         self.max_c = self.config.saturation
 
-        simulator = TExpSimulator(self.det, self.target_wl, self.max_c, self.config.texp_iters)
+        simulator = TExpSimulator(self.detsim, self.target_wl, self.max_c, self.config.texp_iters)
 
         self.tExpCancelled = False
         
@@ -113,29 +115,29 @@ class SimUI(QObject):
             return None
 
     def simulate_texp_and_plot(self):
-        prob = self.run_texp_simulation()
-
-        if prob is not None:
-            try:
-                self.window.set_texp_plot(
-                    prob[0, :],
-                    prob[1, :],
-                    title  = 'CCD saturation time probability distribution',
-                    xlabel = 'Time to saturation [s]',
-                    ylabel = fr'Probability density $p(t|{{c = {self.max_c}}})$',
-                    label = '$\lambda = {0:1.3f}{{\mu}}m$, $c_{{max}}$ = {1} ADU, scale ${2}x{3}$'.format(
-                        self.target_wl * 1e6,
-                        self.max_c,
-                        self.config.scale[0],
-                        self.config.scale[1]
-                    ))
-            except Exception as e:
-                dialog = QMessageBox(
-                    parent = self, 
-                    icon = QMessageBox.Icon.Warning,
-                    text=fr"Failed to calculate saturation time distribution")
-                dialog.setWindowTitle("Simulation error")
-                dialog.exec()   # Stores the return value for the button pressed
+        try:
+            prob = self.run_texp_simulation()
+            if prob is not None:
+                
+                    self.window.set_texp_plot(
+                        prob[0, :],
+                        prob[1, :],
+                        title  = 'CCD saturation time probability distribution',
+                        xlabel = 'Time to saturation [s]',
+                        ylabel = fr'Probability density $p(t|{{c = {self.max_c}}})$',
+                        label = '$\lambda = {0:1.3f}{{\mu}}m$, $c_{{max}}$ = {1} ADU, scale ${2}x{3}$'.format(
+                            self.target_wl * 1e6,
+                            self.max_c,
+                            self.config.scale[0],
+                            self.config.scale[1]
+                        ))
+        except Exception as e:
+            dialog = QMessageBox(
+                parent = self.window, 
+                icon = QMessageBox.Icon.Warning,
+                text=fr"Failed to calculate saturation time distribution: {str(e)}")
+            dialog.setWindowTitle("Simulation error")
+            dialog.exec()   # Stores the return value for the button pressed
 
     def get_graphviz(self):
         graph = '''
@@ -163,23 +165,28 @@ class SimUI(QObject):
 
                 if self.config.cal_select:
                     respPerM      = self.params.get_fiber(config.fiber)
-                    fiberResponse = radiosim.CompoundResponse()
-                    fiberResponse.push_front(respPerM)
-                    fiberResponse.set_multiplicity(config.fiber_length)
-                    ffill, ftext   = fiberResponse.calc_color_lazy()
 
-                    graph += f'{lamp_node}_lamp [shape=ellipse, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
-                    graph += f'{lamp_node} [shape=rectangle, fillcolor="{ffill}", color="{ftext}", label="{config.fiber}\n{config.fiber_length:.2g} m"];\n'
-                    graph += f'{lamp_node}_lamp -> {lamp_node};\n'
+                    if type(respPerM) is radiosim.AllPassResponse:
+                        graph += f'{lamp_node} [shape=ellipse, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
+                    else:
+                        fiberResponse = radiosim.CompoundResponse()
+                        fiberResponse.push_front(respPerM)
+                        fiberResponse.set_multiplicity(config.fiber_length)
+                        ffill, ftext   = fiberResponse.calc_color_lazy()
+
+                        graph += f'{lamp_node}_lamp [shape=ellipse, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
+                        graph += f'{lamp_node} [shape=rectangle, fillcolor="{ffill}", color="{ftext}", label="     {config.fiber}     \n{config.fiber_length:.2g} m"];\n'
+                        graph += f'{lamp_node}_lamp -> {lamp_node};\n'
                 else:
                     graph += f'{lamp_node} [shape=rectangle, fillcolor="{fillcolor}", label=<<font color="{color}">{lamp}</font>>];\n'
 
         coating = self.get_selected_coating()
-        color = coating._color
+        fillcolor = coating._color
+        color     = coating._text
 
         if self.config.cal_select:
             html   = f'Integrating Sphere\n{coating._name}'
-            graph += f'input [shape=circle, fillcolor="white:{color}", gradientangle=0, style=radial, label = "{html}"];\n'
+            graph += f'input [shape=circle, fillcolor="white:{fillcolor}", fontcolor="{color}", gradientangle=0, style=radial, label = "{html}"];\n'
         else:
             html   = f'<b>ELT</b><br />{self.config.telescope.focal_length} / {self.config.telescope.aperture}'
             graph += f'input [shape=cylinder, fillcolor="white", rotate=90, height=2, width=2, label = <{html}>];\n'
@@ -203,11 +210,41 @@ class SimUI(QObject):
 
         self.window.set_instrument_svg(data.getvalue())
         
+    def get_sky_fnum(self):
+        fnum_tel = self.config.telescope.focal_length / self.config.telescope.aperture
+        xscale = self.config.scale[0]
+        yscale = self.config.scale[1]
+        k      = HARMONI_FINEST_SPAXEL_SIZE / np.sqrt(xscale * yscale)
+        return fnum_tel * k
+    
+    def get_cal_fnum(self):
+        xscale = self.config.scale[0]
+        yscale = self.config.scale[1]
+        k      = HARMONI_FINEST_SPAXEL_SIZE / np.sqrt(xscale * yscale)
+        return self.config.offner_f * k
+    
     def make_current_response(self):
-        return self.params.make_response(
-            grating = self.config.grating, 
-            ao = self.config.aomode,
-            cal = self.config.cal_select)
+        resp_config = {}
+        airmass = 1.1
+
+        if self.config.cal_select:
+            angle   = self.config.telescope.zenith_distance
+            toRad   = angle / 180. * np.pi
+            airmass = 1. / np.cos(toRad)
+        
+        resp_config['grating'] = self.config.grating
+        resp_config['ao']      = self.config.aomode
+        resp_config['cal']     = self.config.cal_select
+        resp_config['airmass'] = airmass
+
+        # Incrementing the scale means that the same pixel covers more sky.
+        # This reduces the effective focal length in the involved parts.
+        resp_config['fD_tel']  = self.get_sky_fnum()
+        resp_config['fD_cal']  = HARMONI_INST_FNUM
+        resp_config['fD_ins']  = HARMONI_INST_FNUM
+        resp_config['fD_fix']  = HARMONI_INST_FNUM
+
+        return self.params.make_response(resp_config)
 
     def get_selected_coating(self):
         # Initialize integrating sphere
@@ -227,12 +264,14 @@ class SimUI(QObject):
         # be either pure power spectrums or isotropic radiators.
         #
         coating  = self.get_selected_coating()
-
-        sphere  = radiosim.ISRadianceSpectrum(
+        aperture = .25 * np.pi * self.config.is_aperture ** 2
+        sphere   = radiosim.ISRadianceSpectrum(
             self.config.is_radius, 
-            .25 * np.pi * self.config.is_aperture ** 2,
+            aperture,
             coating)
         
+        sphere.set_temperature(self.params.get_temperature('TCal'))
+
         # Spectrum coming from all lamps
         self.lamp_text = ''
         for lamp in self.config.lamps.keys():
@@ -256,7 +295,7 @@ class SimUI(QObject):
                             lamp_spectrum)
 
                     if config.power is not None:
-                        lamp_spectrum.adjust_power(config.power)
+                        lamp_radiator.adjust_power(config.power)
                     lamp_radiator.set_attenuation(config.attenuation * 1e-2)
 
                     # Add fiber effect
@@ -264,15 +303,11 @@ class SimUI(QObject):
                     fiber_spectrum = radiosim.AttenuatedPowerSpectrum(lamp_radiator)
                     fiber_spectrum.push_filter(response)
                     fiber_spectrum.set_multiplicity(config.fiber_length)
-                    
                     sphere.push_spectrum(fiber_spectrum)
 
-        # The "attenuated spectrum" is what is going to determine how much flux
-        # is extracted from the sphere's output. The "set_fnum" will determine 
-        # the size of the light cone, from which we can determine the surface
-        # density of power. I.e. the irradiance.
+
         spectrum = radiosim.AttenuatedSpectrum(sphere)
-        spectrum.set_fnum(self.config.offner_f)
+        spectrum.set_fnum(self.get_cal_fnum())
         return spectrum
 
     def make_obs_mode_spectrum(self):
@@ -283,8 +318,6 @@ class SimUI(QObject):
         # also assumes that the radiance of the selected pixel is representative
         # of its surroundings, so that the effect of the PSF is low.
         #
-
-        mas2rad = 4.8481368e-09 # 1 mas = 4.8481368e-09 rad
 
         sky = radiosim.OverlappedSpectrum()
 
@@ -306,15 +339,26 @@ class SimUI(QObject):
                     sky.push_spectrum(lamp_spectrum)
 
         # In observation mode, we already have the size of our pixel in the sky.
-        # This means that we can convert directly from radiance to irradiance
-        # by multiplying the surface intensity by the spaxel scale.
+        # This means that we can obtain the etendue directly from the telescope
+        # aperture and the projected spaxel
         spectrum = radiosim.AttenuatedSpectrum(sky)
-        spectrum.set_spaxel(self.config.scale[0] * mas2rad, self.config.scale[1] * mas2rad)
-        spectrum.set_attenuation(1 - self.config.telescope.efficiency)
+        spectrum.set_fnum(self.get_sky_fnum())
+
         return spectrum
 
-    def simulate_spectrum(self):
+    def refresh_parameters(self, config):
+        # Adjust telescope parameters
+        self.params.set_telescope_parameters(
+            config.telescope.aperture,
+            config.telescope.collecting_area)
+        
+        # Adjust temperatures
+        for temp in self.config.temps.keys():
+            self.params.set_temperature(temp, self.config.temps[temp].temperature)
+
+    def create_simulator(self):
         self.config = self.window.get_config()
+        self.refresh_parameters(self.config)
         self.refresh_instrument_graph()
 
         self.x_axis_name, self.x_axis_units = self.window.get_x_axis_selection()
@@ -323,90 +367,149 @@ class SimUI(QObject):
         # Initialize optical train
         response = self.make_current_response()
 
+        if self.config.bypass_stage is not None:
+            response.prune_forward(self.config.bypass_stage)
+
         if self.config.cal_select:
             spectrum = self.make_cal_mode_spectrum()
-            dimRelX  = self.config.scale[0] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ALONG)
-            dimRelY  = self.config.scale[1] / (HARMONI_FINEST_SPAXEL_SIZE * HARMONI_PX_PER_SP_ACROSS)
-            A_sp     = self.config.detector.pixel_size ** 2 * dimRelX * dimRelY
         else:
             spectrum = self.make_obs_mode_spectrum()
-            A_sp     = self.config.telescope.collecting_area
-            
+
         spectrum.push_filter(response)
+        
+        #
+        # In order to calculate the power collected by a pixel, two equivalent
+        # reasonings are possible:
+        #
+        # A. Project the spaxel on the sky. Multiply I by Omega(spaxel) to get
+        #    the irradiance, and by Area(telescope) to get the total power.
+        # B. Calculate the light cone span angles (in X and Y directions)
+        #    multiply that to the output irradiance of the focus optics, and
+        #    then multiply that by the size of the pixel.
+        #
+        # We are going to follow A as seems easier to calculate. On the other
+        # hand, the dark current is obtained from two sources:
+        #
+        #    1. Portion of the mechanisms seeing by the detector (this was
+        #       measured in 0.2 sr, which corresponds to a cone of 28º deg diameter
+        #       approximately.
+        #    2. Radiation temperature (hemispherical emission, all 180º)
+        #
+        # We are going to model background in a separate object, called
+        # DetectorPixel. This is going to be an abstract class that will accept
+        # a photon flux per pixel and will provide counts, taking into account
+        # the size of the pixel and other environmental properties.
+        #
+
         self.spectrum = spectrum
-
+        
         # Initialize detector
-
         grating = self.params.get_grating(self.config.grating)
-        self.det = radiosim.DetectorSimulator(
+        self.detsim = radiosim.DetectorSimulator(
+                radiosim.CCDPixel(self.params, self.config),
                 spectrum,
-                A_sp    = A_sp,
+                area    = self.config.detector.pixel_size ** 2,
                 R       = grating[2],
-                binning = self.config.binning,
                 pxPerDeltaL = self.config.lambda_sampling,
-                poisson = self.config.noisy,
-                QE      = self.config.detector.QE,
-                G       = self.config.detector.G,
-                ron     = self.config.detector.ron)
+                binning = self.config.binning)
         
     def plot_spectrum_result(self):
         t_exp = self.config.t_exp
         grating = self.params.get_grating(self.config.grating)
+        R          = grating[2]
         lambda_min = grating[3]
         lambda_max = grating[4]
+        # Decide what to paint
+        type       = self.config.type
+        y_axis     = self.config.y_axis
+        tdesc      = self.params.get_spectrum_type_desc(type)
+        label      = self.window.get_custom_plot_label()
+        show_sat   = False
+        noiseless  = not self.config.noisy
+
+        do_stem = type == 'detector'
+        if do_stem:
+            pxPerDeltaL = self.config.lambda_sampling
+            dLambda     = .5 * (lambda_max + lambda_min) / (R * pxPerDeltaL)
+            steps       = int((lambda_max - lambda_min) / dLambda)
+            detWl       = lambda_min+ np.linspace(0, steps - 1, steps) * dLambda
 
         if self.config.x_axis == 'frequency':
-            nu = np.linspace(SPEED_OF_LIGHT / lambda_max, SPEED_OF_LIGHT / lambda_min, 1000)
+            if do_stem:
+                nu = SPEED_OF_LIGHT / detWl[::-1]
+            else:
+                nu = np.linspace(SPEED_OF_LIGHT / lambda_max, SPEED_OF_LIGHT / lambda_min, 1000)
             wl = None
-            K = 1e-12 # Hz per THz
-            x  = nu * 1e12 # In THz
+            K = 1e12        # Hz per THz
+            x  = nu * 1e-12 # In THz
         else:
-            wl = np.linspace(lambda_min, lambda_max, 1000)
+            if do_stem:
+                wl = detWl
+            else:
+                wl = np.linspace(lambda_min, lambda_max, 1000)
             nu = None
-            K  = 1e-6 # m per µm
+            K  = 1e-6     # m per µm
             x  = wl * 1e6 # In µm
 
-        # Decide what to paint
-        type   = self.config.type
-        y_axis = self.config.y_axis
-        tdesc  = self.params.get_spectrum_type_desc(type)
+        if y_axis == 'photon_I':
+            K /= ARCSEC2_PER_SR # Radiances must be /arcsec2
 
-        label = self.window.get_custom_plot_label()
         if type == 'is_out':
             if label is None:
                 label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
-                y = K * self.det.get_E(wl = wl, nu = nu, atten = False)
+                y = K * self.detsim.get_E(wl = wl, nu = nu, atten = False)
+            elif y_axis == 'photon_I':
+                y = K * self.detsim.get_photon_radiance(wl, nu, atten = False)
             elif y_axis == 'photon_F':
-                y = K * self.det.get_photon_flux(wl, nu, atten = False)
+                y = K * self.detsim.get_photon_flux(wl, nu, atten = False)
+            elif y_axis == 'dphotondt':
+                y = self.detsim.photonFluxPerPixel(wl = wl, nu = nu, atten = False)
             else:
                 raise Exception(fr'Invalid quantity {type}:{y_axis}')
         elif type == 'detector':
             if label is None:
                 label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
             if y_axis == 'spect_E':
-                y = K * self.det.get_E(wl = wl, nu = nu, atten = True)
+                y = K * self.detsim.get_E(wl = wl, nu = nu, atten = True)
+            elif y_axis == 'photon_I':
+                y = K * self.detsim.get_photon_radiance(wl, nu, atten = True)
             elif y_axis == 'photon_F':
-                y = K * self.det.get_photon_flux(wl, nu, atten = True)
+                y = K * self.detsim.get_photon_flux(wl, nu, atten = True)
+            elif y_axis == 'dphotondt':
+                y = self.detsim.photonFluxPerPixel(wl = wl, nu = nu, atten = True)
             elif y_axis == 'dedt_Px':
-                y = self.det.electronRatePerPixel(wl = wl, nu = nu)
+                y = self.detsim.electronRatePerPixel(wl = wl, nu = nu)
             elif y_axis == 'electrons':
-                y = self.det.electronsPerPixel(wl = wl, nu = nu, t = t_exp)
-            elif y_axis == 'counts':
-                y = self.det.countsPerPixel(
+                y = self.detsim.electronsPerPixel(
                     wl = wl,
                     nu = nu,
                     t = t_exp,
-                    disable_noise = not self.config.noisy)
+                    disable_noise = noiseless)
+            elif y_axis == 'counts':
+                show_sat = True
+                y = self.detsim.countsPerPixel(
+                    wl = wl,
+                    nu = nu,
+                    t = t_exp,
+                    disable_noise = noiseless)
             else:
                 raise Exception(fr'Invalid quantity {type}:{y_axis}')
         elif type == 'transmission':
-            stage = self.params.get_stage(y_axis)
+            if y_axis == 'total_response':
+                part = self.make_current_response()
+                y_desc = 'Instrument response'
+            elif y_axis == 'sky':
+                part = self.params.get_sky_transmission()
+                y_desc = 'Sky transmission'
+            else:
+                part = self.params.get_transmission(y_axis)
+                y_desc = part.get_label()
             if wl is None:
                 wl = SPEED_OF_LIGHT / nu
-            y = stage.get_t_matrix(wl)
+            y = part.get_t_matrix(wl)
             if label is None:
-                label = fr'{y_axis} at {self.config.grating}'
+                label = fr'{y_desc} at {self.config.grating}'
         else:
             raise Exception(fr'Invalid spectrum type {type}')
         
@@ -417,7 +520,16 @@ class SimUI(QObject):
             x_units = self.x_axis_units,
             y_desc  = self.y_axis_name,
             y_units = self.y_axis_units,
-            label   = label)
+            label   = label,
+            stem    = do_stem)
+        
+        if show_sat:
+            self.window.set_saturation_level(
+                self.config.grating,
+                x[0],
+                x[-1],
+                self.config.saturation)
+        self.window.set_show_saturation(show_sat)
 
     def run(self):
         self.window.show()
@@ -429,7 +541,7 @@ class SimUI(QObject):
         self.on_overlay_spectrum()
 
     def on_overlay_spectrum(self):
-        self.simulate_spectrum()
+        self.create_simulator()
         self.plot_spectrum_result()
 
     def on_plot_texp(self):

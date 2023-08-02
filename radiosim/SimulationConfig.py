@@ -80,36 +80,6 @@ class SerializableConfig(ABC):
         with open(file, 'r') as fp:
             data = yaml.load(fp, Loader = SafeLoader)
             self._cache = data
-#
-# Copyright (c) 2023 Gonzalo J. Carracedo <BatchDrake@gmail.com>
-#
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer.
-#
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#
-# 3. Neither the name of the copyright holder nor the names of its contributors
-#    may be used to endorse or promote products derived from this software
-#    without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-
         self.load(self._cache)
     
 class LampConfig(SerializableConfig):
@@ -134,20 +104,46 @@ class LampConfig(SerializableConfig):
     def load(self, dict):
         self.load_all(dict)
     
+class TemperatureConfig(SerializableConfig):
+    def __init__(self):
+        super().__init__()
+        
+        self.temperature = 273 # K
+        self.pref_units  = 'C'
+
+    def save(self):
+        self.save_param('temperature')
+        self.save_param('pref_units')
+
+    def load(self, dict):
+        self.load_all(dict)
+
 class DetectorConfig(SerializableConfig):
     def __init__(self):
         super().__init__()
 
         self.G          = 1
-        self.ron        = 5
-        self.QE         = .95
+        self.ron_vis    = 2.0     # e
+        self.ron_nir    = 6.0     # e
+        self.ron_nir_le = 15.0    # e
+
+        self.dark_vis   = 0.00042 # e/s
+        self.dark_nir   = 0.0053  # e/s
+
         self.pixel_size = HARMONI_PIXEL_SIZE
+        self.tmech_cone = 0.2     # sr
+        self.trad_cone  = 6.2832  # sr
 
     def save(self):
         self.save_param('G')
-        self.save_param('ron')
-        self.save_param('QE')
+        self.save_param('ron_vis')
+        self.save_param('ron_nir')
+        self.save_param('ron_nir_le')
+        self.save_param('dark_vis')
+        self.save_param('dark_nir')
         self.save_param('pixel_size')
+        self.save_param('tmech_cone')
+        self.save_param('trad_cone')
 
     def load(self, dict):
         self.load_all(dict)
@@ -179,16 +175,19 @@ class SimulationConfig(SerializableConfig):
         super().__init__()
         
         self.lamps         = {}
+        self.temps         = {}
+
         self.lamp_configs  = {}
+        self.temp_configs  = {}
 
         self.telescope       = TelescopeConfig()
         self.detector        = DetectorConfig()
-        self.cal_select      = False
+        self.cal_select      = True
         self.is_radius       = 1e-1
         self.is_aperture     = .5e-1
         self.is_coating      = 'SPECTRALON'
         self.offner_f        = 17.37 # See CALIBRATION UNIT RELAY OPTICAL DESIGN
-
+        self.bypass_stage    = None
         self.binning         = 1
         self.lambda_sampling = 2.2
         self.grating         = 'VIS'
@@ -196,7 +195,6 @@ class SimulationConfig(SerializableConfig):
         self.scale           = (4, 4)
         self.t_exp           = 10
         self.saturation      = 20000
-        self.temperature     = 273.15
 
         self.type            = 'is_out'
         self.x_axis          = 'wavelength'
@@ -217,6 +215,9 @@ class SimulationConfig(SerializableConfig):
     def set_lamp_config(self, name, lamp):
         self.lamps[name] = lamp
     
+    def set_temp_config(self, name, temp):
+        self.temps[name] = temp
+    
     def save(self):
         self.save_param("cal_select")
         self.save_param("lambda_sampling")
@@ -232,13 +233,12 @@ class SimulationConfig(SerializableConfig):
         self.save_param('scale')
         self.save_param('t_exp')
         self.save_param('saturation')
-        self.save_param('temperature')
         self.save_param('type')
         self.save_param('x_axis')
         self.save_param('y_axis')
         self.save_param('spect_log')
         self.save_param('noisy')
-
+        self.save_param('bypass_stage')
         self.save_param('texp_band')
         self.save_param('texp_use_band')
         self.save_param('texp_wl')
@@ -249,12 +249,15 @@ class SimulationConfig(SerializableConfig):
         for lamp in self.lamps.keys():
             self.lamps[lamp].save()
             self.lamp_configs[lamp] = self.lamps[lamp].as_dict()
-
         self.save_param('lamp_configs')
+
+        for temp in self.temps.keys():
+            self.temps[temp].save()
+            self.temp_configs[temp] = self.temps[temp].as_dict()
+        self.save_param('temp_configs')
 
         self.detector.save()
         self.detector_config = self.detector.as_dict()
-        
         self.save_param('detector_config')
 
         self.telescope.save()
@@ -270,6 +273,10 @@ class SimulationConfig(SerializableConfig):
         for lamp in self.lamp_configs.keys():
             self.lamps[lamp] = SimulationConfig()
             self.lamps[lamp].load(self.lamp_configs[lamp])
+
+        for temp in self.temp_configs.keys():
+            self.temps[temp] = TemperatureConfig()
+            self.temps[temp].load(self.temp_configs[temp])
 
         self.detector.load(self.detector_config)
         self.telescope.load(self.telescope_config)

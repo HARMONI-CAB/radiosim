@@ -34,10 +34,11 @@ from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QMessageBox, QDialogButtonBox, QFileDialog, QSpacerItem, QSizePolicy, QLabel
 from PyQt6.QtSvgWidgets import QSvgWidget
-from radiosim import SimulationConfig, DetectorConfig, TelescopeConfig
+from radiosim import SimulationConfig, DetectorConfig, TelescopeConfig, TemperatureConfig
 from .PlotWidget import PlotWidget
 from .CubeChooserDialog import CubeChooserDialog
 from .LampControlWidget import LampControlWidget
+from .TemperatureControlWidget import TemperatureControlWidget
 import os.path
 import pathlib
 import traceback
@@ -73,6 +74,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.curr_x_units = None
         self.curr_y_units = None
         self.lamp_widgets = {}
+        self.temp_widgets = {}
         self.filename = None
         self.changes = False
         self.params = None
@@ -128,9 +130,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
         self.tExpWlSpin.valueChanged.connect(self.on_state_widget_changed)
         self.logScaleCheck.toggled.connect(self.on_log_scale_changed)
-        self.lambdaSamplingSpin.valueChanged.connect(self.on_log_scale_changed)
-        self.binningSpin.valueChanged.connect(self.on_log_scale_changed)
-
+        self.stopCheck.toggled.connect(self.on_state_widget_changed)
+        self.stopCombo.activated.connect(self.on_state_widget_changed)
         self.gratingCombo.activated.connect(self.on_state_widget_changed)
         self.aoModeCombo.activated.connect(self.on_state_widget_changed)
         self.scaleCombo.activated.connect(self.on_state_widget_changed)
@@ -141,6 +142,24 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.action_Quit.triggered.connect(self.on_quit)
         self.action_LoadCube.triggered.connect(self.on_load_cube)
         self.cubeChooserDialog.accepted.connect(self.on_cube_accepted)
+
+        # Detector
+        self.pxSizeSpin.valueChanged.connect(self.on_det_config_changed)
+        self.gainSpin.valueChanged.connect(self.on_det_config_changed)
+
+        self.ronVisSpin.valueChanged.connect(self.on_det_config_changed)
+        self.ronNirSpin.valueChanged.connect(self.on_det_config_changed)
+
+        self.ronNirLeSpin.valueChanged.connect(self.on_det_config_changed)
+        self.darkVisSpin.valueChanged.connect(self.on_det_config_changed)
+        self.darkNirSpin.valueChanged.connect(self.on_det_config_changed)
+        
+        self.intStepsSpin.valueChanged.connect(self.on_det_config_changed)
+        self.lambdaSamplingSpin.valueChanged.connect(self.on_det_config_changed)
+        self.binningSpin.valueChanged.connect(self.on_det_config_changed)
+
+        self.tRadConeSpin.valueChanged.connect(self.on_det_config_changed)
+        self.tMechConeSpin.valueChanged.connect(self.on_det_config_changed)
 
     def set_instrument_svg(self, svg):
         self.instWidget.load(QtCore.QByteArray(svg.encode('utf-8')))
@@ -168,15 +187,21 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpWidget.clear()
         self.tExpStack.setCurrentIndex(0)
         
-    def set_plot(self, *args, xlabel = None, ylabel = None, **kwargs):
-        self.plotWidget.plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
+    def set_plot(self, *args, xlabel = None, ylabel = None, stem = False, **kwargs):
+        self.plotWidget.plot(*args, xlabel = xlabel, ylabel = ylabel, stem = stem, **kwargs)
         self.plotStack.setCurrentIndex(1)
 
     def set_texp_plot(self, *args, xlabel = None, ylabel = None, **kwargs):
         self.tExpWidget.plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
         self.tExpStack.setCurrentIndex(1)
     
-    def spectrum_plot(self, *args, x_desc, x_units, y_desc, y_units, **kwargs):
+    def set_show_saturation(self, show: bool):
+        self.plotWidget.set_limits_visible(show)
+    
+    def set_saturation_level(self, name: str, xmin: float, xmax: float, height: float):
+        self.plotWidget.set_limit(name, xmin, xmax, height)
+    
+    def spectrum_plot(self, *args, x_desc, x_units, y_desc, y_units, stem, **kwargs):
         if self.curr_x_units is not None and x_units != self.curr_x_units:
             if not self.ask_yes_no(
                 fr'Units of the horizontal axis differ from those of the current plot '
@@ -201,7 +226,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.curr_x_units = x_units
         self.curr_y_units = y_units
 
-        self.set_plot(*args, xlabel = xlabel, ylabel = ylabel, **kwargs)
+        self.set_plot(*args, xlabel = xlabel, ylabel = ylabel, stem = stem, **kwargs)
 
     def ask_yes_no(self, text, title):
         dlg = QMessageBox(self)
@@ -211,6 +236,23 @@ class SimUiWindow(QtWidgets.QMainWindow):
         dlg.setIcon(QMessageBox.Icon.Question)
         button = dlg.exec()
         return button == QDialogButtonBox.StandardButton.Yes.value
+
+    def refresh_temps(self):
+        # Remove placeholders
+        for i in reversed(range(self.tempLayout.count())):
+            item = self.tempLayout.itemAt(i)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+            self.tempLayout.removeItem(item)
+
+        # Add widgets
+        temps = self.params.get_temperatures()
+        for temp in temps:
+            widget = TemperatureControlWidget(temp, self.params)
+
+            self.tempLayout.insertWidget(-1, widget)
+            widget.changed.connect(self.on_temp_changed)
+            self.temp_widgets[temp] = widget
 
     def refresh_lamps(self):
         # Remove exiting lamps
@@ -258,6 +300,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
     def refresh_params(self):
         self.refresh_lamps()
+        self.refresh_temps()
 
         gratings = self.params.get_grating_names()
         
@@ -303,8 +346,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
                 fr'{name} ({grating[3] * 1e6:.3f} µm - {grating[4] * 1e6:.3f} µm)', userData = g)
         
 
-        # Add detector defaults
-        self.pxSizeSpin.setValue(HARMONI_PIXEL_SIZE * 1e6)
 
         self.refresh_ui_state()
 
@@ -321,6 +362,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
             return
 
         for spect in spectrums:
+            if spect == 'sky' and self.is_cal_selected():
+                continue
             name, units = self.params.get_spectrum_desc_for_type(type, spect)
             text = fr'{name} [{units}]'
             self.spectYAxisCombo.addItem(
@@ -379,6 +422,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.refresh_instrument_mode_ui_state()
         self.refresh_spect_ui_state()
         self.refresh_exp_time_ui_state()
+        self.refresh_bypass_stages()
 
     def set_grating(self, grating_name):
         if grating_name is None:
@@ -475,18 +519,32 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.passBandCombo.setCurrentIndex(index)
 
     def set_detector_config(self, config):
-        self.gainSpin.setValue(config.G)
-        self.ronSpin.setValue(config.ron)
-        self.qeSpin.setValue(config.QE * 1e2)
         self.pxSizeSpin.setValue(config.pixel_size * 1e6)
+        self.gainSpin.setValue(config.G)
+
+        self.ronVisSpin.setValue(config.ron_vis)
+        self.ronNirSpin.setValue(config.ron_nir)
+        self.ronNirLeSpin.setValue(config.ron_nir_le)
+
+        self.darkVisSpin.setValue(config.dark_vis)
+        self.darkNirSpin.setValue(config.dark_nir)
+        self.tRadConeSpin.setValue(config.trad_cone)
+        self.tMechConeSpin.setValue(config.tmech_cone)
 
     def get_detector_config(self):
         config = DetectorConfig()
 
-        config.G          = self.gainSpin.value()
-        config.ron        = self.ronSpin.value()
-        config.QE         = self.qeSpin.value() * 1e-2
         config.pixel_size = self.pxSizeSpin.value() * 1e-6
+        config.G          = self.gainSpin.value()
+        config.ron_vis    = self.ronVisSpin.value()
+        config.ron_nir    = self.ronNirSpin.value()
+        config.ron_nir_le = self.ronNirLeSpin.value()
+        config.dark_vis   = self.darkVisSpin.value()
+        config.dark_nir   = self.darkNirSpin.value()
+        
+        config.tmech_cone = self.tMechConeSpin.value()
+        config.trad_cone  = self.tRadConeSpin.value()
+
         return config
 
     def get_telescope_config(self):
@@ -511,6 +569,12 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.isApertureDiamSpin.setValue(config.is_aperture * 1e3)
 
         self.set_coating(config.is_coating)
+
+    def get_cm_config(self, config):
+        config.offner_f    = self.fNSpin.value()
+        config.is_radius   = self.isRadiusSpin.value() * 1e-3
+        config.is_aperture = self.isApertureDiamSpin.value() * 1e-3
+        config.is_coating  = self.isCoatingCombo.currentData()
 
     def get_current_role(self):
         return 'cal' if self.instModeCombo.currentIndex() == 0 else 'telescope'
@@ -538,9 +602,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         return shouldEnable
 
     def refresh_spect_ui_state(self):
-        lampsOn = self.any_lamp_is_on()
+        lampsOn      = self.any_lamp_is_on()
         shouldEnable = self.should_enable_yaxis()
-        
+        isBypassable = self.spectTypeCombo.currentData() == 'detector'
+
         self.overrideLabelEdit.setEnabled(self.overrideLabelCheck.isChecked())
         self.spectYAxisCombo.setEnabled(shouldEnable)
         self.plotControlBox.setEnabled(shouldEnable)
@@ -548,6 +613,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpParamBox.setEnabled(lampsOn)
         self.tExpControlBox.setEnabled(lampsOn)
         
+        self.stopCombo.setEnabled(isBypassable and self.stopCheck.isChecked())
+        self.stopCheck.setEnabled(isBypassable)
+                                
     def set_coating(self, coating):
         index = -1
 
@@ -583,6 +651,37 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.airmassLabel.setText(fr'{sec:.2f}')
 
+    def refresh_bypass_stages(self):
+        resp_config = {}
+
+        if self.params is None:
+            return
+        
+        if self.stopCombo.count() > 0:
+            self.bypass_stage = self.stopCombo.currentText()
+        
+        self.stopCombo.clear()
+        grating = self.gratingCombo.currentText()
+        aomode  = self.aoModeCombo.currentText()
+        cal     = self.instModeCombo.currentIndex() == 0
+        airmass = 1.1
+
+        resp_config['grating'] = grating
+        resp_config['ao']      = aomode
+        resp_config['cal']     = cal
+        resp_config['airmass'] = airmass
+
+        response = self.params.make_response(resp_config)
+
+        labels = response.get_components()
+        for label in labels:
+            self.stopCombo.addItem(label)
+
+        if self.bypass_stage is not None:
+            ndx = self.stopCombo.findText(self.bypass_stage)
+            if ndx >= 0:
+                self.stopCombo.setCurrentIndex(ndx)
+
     def set_telescope_config(self, config):
         self.focalLengthSpin.setValue(config.focal_length)
         self.apertureSpin.setValue(config.aperture)
@@ -614,7 +713,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
             self.expTimeSpin.setValue(config.t_exp)
             self.satLevelSpin.setValue(config.saturation)
-            self.tempSpin.setValue(config.temperature - 273.15)
 
             if config.x_axis == 'frequency':
                 self.spectXAxisCombo.setCurrentIndex(1)
@@ -635,6 +733,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.photonNoiseCheck.setChecked(config.noisy)
             self.tExpLogScaleCheck.setChecked(config.texp_log)
 
+            self.bypass_stage = config.bypass_stage
+
             self.changes = False
             self.update_title()
             self.changed.emit()
@@ -654,6 +754,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
             dialog.setWindowTitle("Message Dialog")
             dialog.exec()   # Stores the return value for the button pressed
 
+    def is_cal_selected(self):
+        return self.instModeCombo.currentIndex() == 0
+    
     def get_config(self):
         config = SimulationConfig()
         
@@ -661,7 +764,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for lamp in self.lamp_widgets.keys():
             config.set_lamp_config(lamp, self.lamp_widgets[lamp].get_config())
         
-        config.cal_select      = self.instModeCombo.currentIndex() == 0
+        # Read temp config
+        for temp in self.temp_widgets.keys():
+            config.set_temp_config(temp, self.temp_widgets[temp].get_config())
+        
+        config.cal_select      = self.is_cal_selected()
 
         config.is_coating      = self.isCoatingCombo.currentData()
         config.is_aperture     = self.isApertureDiamSpin.value() * 1e-3
@@ -673,7 +780,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.scale           = self.scaleCombo.currentData()
         config.t_exp           = self.expTimeSpin.value()
         config.saturation      = self.satLevelSpin.value()
-        config.temperature     = self.tempSpin.value() + 273.15
 
         config.type            = self.spectTypeCombo.currentData()
         config.x_axis          = 'frequency' if self.spectXAxisCombo.currentIndex() == 1 else 'wavelength'
@@ -681,15 +787,19 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         config.spect_log       = self.logScaleCheck.isChecked()
         config.noisy           = self.photonNoiseCheck.isChecked()
-
+        config.bypass_stage    = None if not self.stopCombo.isEnabled() else self.stopCombo.currentText()
         config.texp_band       = self.passBandCombo.currentData()
         config.texp_use_band   = self.tExpPassBandRadio.isChecked()
-        config.texp_wl         = self.tExpWlSpin.value()
+        config.texp_wl         = self.tExpWlSpin.value() * 1e-6
         config.texp_log        = self.tExpLogScaleCheck.isChecked()
         config.texp_iters      = self.intStepsSpin.value()
 
+        self.get_cm_config(config)
+
         config.detector        = self.get_detector_config()
         config.telescope       = self.get_telescope_config()
+
+        self.bypass_stage = config.bypass_stage
 
         return config
 
@@ -804,7 +914,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.notify_changes()
         self.refresh_instrument_mode_ui_state()
         self.refresh_spect_ui_state()
-        
+        self.refresh_bypass_stages()
+
     def on_state_widget_changed(self):
         self.notify_changes()
         self.refresh_ui_state()
@@ -817,6 +928,12 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def on_lamp_changed(self):
         self.notify_changes()
         self.refresh_spect_ui_state()
+
+    def on_temp_changed(self):
+        self.notify_changes()
+
+    def on_det_config_changed(self):
+        self.notify_changes()
 
     def on_plot_clear(self):
         self.clear_plot()
@@ -856,6 +973,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         # Convert units to J/s/m^2/m/rad^2
         if base_units == 'erg/s/cm2/AA/arcsec2':
             data *= 4.254517e+17
+        elif base_units == 'erg/s/cm2/um/arcsec2':
+            data *= 4.254517e+13
         else:
             QMessageBox.warning(
                 self,
@@ -871,7 +990,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
                 mult = 1e-4
             elif freq_units.lower() == 'nm':
                 mult = 1e-3
-            elif freq_units.lower() != 'µm':
+            elif freq_units.lower() != 'µm' and freq_units.lower() != 'micron':
                 QMessageBox.warning(
                     self,
                     'Cannot load this spectrum',

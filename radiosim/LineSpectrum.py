@@ -29,7 +29,7 @@
 #
 
 import numpy as np
-from . import RadianceSpectrum
+from .RadianceSpectrum import RadianceSpectrum
 from . import BOLTZMANN
 from . import SPEED_OF_LIGHT
 from . import PROTONMASS

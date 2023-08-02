@@ -39,7 +39,7 @@ class AttenuatedPowerSpectrum(PowerSpectrum):
         super().__init__()
 
         self.sourceSpectrum = sourceSpectrum
-        self.filters        = CompoundResponse()
+        self.filters        = CompoundResponse.CompoundResponse()
         self.max_wl         = -1
         self.attenuation    = 0. # From 0 to 1
 
@@ -60,12 +60,12 @@ class AttenuatedPowerSpectrum(PowerSpectrum):
     
     # TODO: take emissivity of each intermediate filter into account
     def get_PSD(self, wl):
-        alpha = (1. - self.attenuation) * self.sourceSpectrum.power_factor
-        return self.filters.apply(wl, alpha * self.sourceSpectrum.get_PSD(wl))
+        alpha = (1. - self.attenuation)
+        return self.filters.apply(wl, alpha * self.sourceSpectrum.PSD(wl), False)
 
     def get_PSD_matrix(self, wl):
-        alpha = (1. - self.attenuation) * self.sourceSpectrum.power_factor
-        return self.filters.apply(wl, alpha * self.sourceSpectrum.get_PSD_matrix(wl))
+        alpha = (1. - self.attenuation)
+        return self.filters.apply(wl, alpha * self.sourceSpectrum.PSD(wl), False)
 
     def get_max_wl(self):
         if self.max_wl < 0:

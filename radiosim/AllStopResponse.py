@@ -29,35 +29,15 @@
 #
 
 import numpy as np
+from . import StageResponse
 
-from . import PowerSpectrum
-from . import WIEN_B
-from . import SPEED_OF_LIGHT
-
-class IsotropicRadiatorSpectrum(PowerSpectrum):
-    def __init__(self, area, radiance):
+class AllStopResponse(StageResponse):
+    def __init__(self):
         super().__init__()
-        self.radiance = radiance
-        self.radiance_to_power = np.pi * area
-        
-    def get_max_wl(self):
-        return self.radiance.get_max_wl(self)
-    
-    def get_max_nu(self):
-        return self.radiance.get_max_nu()
-    
-    def get_PSD(self, wl):
-        return self.radiance.I(wl) * self.radiance_to_power
 
-    def get_PSD_matrix(self, wl):
-        return self.radiance.I(wl) * self.radiance_to_power
-    
-    def adjust_power(self, power):
-        self.radiance.adjust_power(power)
-    
-    def integrate_power(self, wl_min = .45e-6, wl_max = 2.4e-6, N = 1000):
-        wl   = np.linspace(wl_min, wl_max, N + 1)
-        dWl  = wl[1] - wl[0]
-        psds = self.get_PSD_matrix(wl)
-        trap = .5 * (psds[:-1] + psds[1:]) * dWl
-        return np.sum(trap)
+    def get_t(self, wl):
+        return 0
+
+    def get_t_matrix(self, wl):
+        return np.zeros(wl.shape)
+        

@@ -32,8 +32,8 @@ import numpy as np
 from . import StageResponse
 import scipy.interpolate
 
-class InterpolatedResponse(StageResponse.StageResponse):
-    def __init__(self, file):
+class InterpolatedResponse(StageResponse):
+    def __init__(self, file, scale = 1, emissivity = False):
         super().__init__()
         
         resp = np.genfromtxt(file, delimiter = ',')
@@ -44,11 +44,18 @@ class InterpolatedResponse(StageResponse.StageResponse):
         
         resp[:, 0] *= 1e-6 # Adjust units from µm to m
 
-        self._interp = scipy.interpolate.interp1d(
-            resp[:, 0],
-            resp[:, 1],
-            bounds_error = False,
-            fill_value = 0.)
+        if emissivity:
+            self._interp = scipy.interpolate.interp1d(
+                resp[:, 0],
+                1 - resp[:, 1] * scale,
+                bounds_error = False,
+                fill_value = 0.)
+        else:
+            self._interp = scipy.interpolate.interp1d(
+                resp[:, 0],
+                resp[:, 1] * scale,
+                bounds_error = False,
+                fill_value = 0.)
 
     def get_t(self, wl):
         return self._interp(wl).ravel()[0]

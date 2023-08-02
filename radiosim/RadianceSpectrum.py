@@ -62,12 +62,9 @@ class RadianceSpectrum(ABC):
     
     def set_fnum(self, fnum):
         self.fnum          = fnum
-        self.to_irradiance = np.pi / (4 * fnum ** 2)
-        
-    def set_spaxel(self, x, y):
-        self.to_irradiance = x * y
-        self.fnum          = np.sqrt(np.pi / (4 * self.to_irradiance))
-
+        a                  = 2 * np.arctan(.5 / fnum)
+        self.to_irradiance = np.pi * a ** 2 / 4
+    
     def set_nominal_power_rating(self, power):
         self.power        = power
         self.power_factor = 1
