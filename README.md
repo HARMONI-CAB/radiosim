@@ -1,7 +1,7 @@
 # RadioSim
 The HARMONI's 1D Radiometric Simulator.
 
-![screenshot](https://user-images.githubusercontent.com/610895/208652736-4eac37bf-0430-4129-9c31-50f41d44dcf7.png)
+![screenshot](docs/screenshot.png)
 
 ## Getting the code
 This is a work in progress. If you want to retrieve the latest changes in the project, clone directly from the development branch (`develop`) as:
