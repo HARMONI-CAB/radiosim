@@ -152,3 +152,7 @@ class PowerSpectrum(ABC):
         photons = self.photons(wl, nu)
 
         return axis[np.argmax(photons)]
+
+    # Power sources can only be defined in calibration mode
+    def test_role(self, role):
+        return role == 'cal'
