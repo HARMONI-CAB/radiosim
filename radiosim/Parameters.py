@@ -586,6 +586,7 @@ class Parameters():
 
     def add_arc_lamps(self):
         self.load_lamp('Argon arc lamp', path = 'ar-psd.csv', psd = True)
+        self.load_lamp('Argon arc lamp (fiber output)', path = 'ar-psd-atfiber.csv', psd = True)
         self.load_lamp('Neon arc lamp',  path = 'ne-psd.csv', psd = True)
 
     def load_defaults(self):
@@ -597,7 +598,8 @@ class Parameters():
 
         # Load lamps
         self.add_arc_lamps()
-
+        self.load_black_body_lamp('Black body', 3422, rating = 100)
+        
         # Load fibers for lamps
         self.load_transparent_fiber("No fiber")
         self.load_fiber("Thorlabs® M35L01", "THORLABS_M35L01.csv")

@@ -187,7 +187,7 @@ class SimulationConfig(SerializableConfig):
         self.is_aperture     = .5e-1
         self.is_coating      = 'SPECTRALON'
         self.offner_f        = 17.37 # See CALIBRATION UNIT RELAY OPTICAL DESIGN
-        self.bypass_stage    = None
+        self.bypass_stage    = []
         self.binning         = 1
         self.lambda_sampling = 2.2
         self.grating         = 'VIS'

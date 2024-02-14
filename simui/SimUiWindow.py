@@ -39,6 +39,7 @@ from .PlotWidget import PlotWidget
 from .CubeChooserDialog import CubeChooserDialog
 from .LampControlWidget import LampControlWidget
 from .TemperatureControlWidget import TemperatureControlWidget
+from .StageSelectDialog import StageSelectDialog
 import os.path
 import pathlib
 import traceback
@@ -78,7 +79,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.filename = None
         self.changes = False
         self.params = None
-        
+        self.bypass_stage = []
+
         self.set_texp_simul_running(False)
         self.refresh_ui_state()
         self.connect_all()
@@ -130,8 +132,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpPassBandRadio.toggled.connect(self.on_state_widget_changed)
         self.tExpWlSpin.valueChanged.connect(self.on_state_widget_changed)
         self.logScaleCheck.toggled.connect(self.on_log_scale_changed)
-        self.stopCheck.toggled.connect(self.on_state_widget_changed)
-        self.stopCombo.activated.connect(self.on_state_widget_changed)
+        self.toggleBypassButton.clicked.connect(self.on_open_stage_dialog)
         self.gratingCombo.activated.connect(self.on_state_widget_changed)
         self.aoModeCombo.activated.connect(self.on_state_widget_changed)
         self.scaleCombo.activated.connect(self.on_state_widget_changed)
@@ -422,7 +423,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.refresh_instrument_mode_ui_state()
         self.refresh_spect_ui_state()
         self.refresh_exp_time_ui_state()
-        self.refresh_bypass_stages()
 
     def set_grating(self, grating_name):
         if grating_name is None:
@@ -606,15 +606,19 @@ class SimUiWindow(QtWidgets.QMainWindow):
         shouldEnable = self.should_enable_yaxis()
         isBypassable = self.spectTypeCombo.currentData() == 'detector'
 
+        if len(self.bypass_stage) > 0:
+            self.toggleBypassButton.setText('Toggle &stages*')
+        else:
+            self.toggleBypassButton.setText('Toggle &stages')
+        
         self.overrideLabelEdit.setEnabled(self.overrideLabelCheck.isChecked())
         self.spectYAxisCombo.setEnabled(shouldEnable)
         self.plotControlBox.setEnabled(shouldEnable)
 
         self.tExpParamBox.setEnabled(lampsOn)
         self.tExpControlBox.setEnabled(lampsOn)
-        
-        self.stopCombo.setEnabled(isBypassable and self.stopCheck.isChecked())
-        self.stopCheck.setEnabled(isBypassable)
+    
+        self.toggleBypassButton.setEnabled(isBypassable)
                                 
     def set_coating(self, coating):
         index = -1
@@ -651,16 +655,12 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.airmassLabel.setText(fr'{sec:.2f}')
 
-    def refresh_bypass_stages(self):
+    def preview_current_response(self):
         resp_config = {}
 
         if self.params is None:
-            return
+            return None
         
-        if self.stopCombo.count() > 0:
-            self.bypass_stage = self.stopCombo.currentText()
-        
-        self.stopCombo.clear()
         grating = self.gratingCombo.currentText()
         aomode  = self.aoModeCombo.currentText()
         cal     = self.instModeCombo.currentIndex() == 0
@@ -673,14 +673,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         response = self.params.make_response(resp_config)
 
-        labels = response.get_components()
-        for label in labels:
-            self.stopCombo.addItem(label)
-
-        if self.bypass_stage is not None:
-            ndx = self.stopCombo.findText(self.bypass_stage)
-            if ndx >= 0:
-                self.stopCombo.setCurrentIndex(ndx)
+        return response
 
     def set_telescope_config(self, config):
         self.focalLengthSpin.setValue(config.focal_length)
@@ -787,7 +780,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         config.spect_log       = self.logScaleCheck.isChecked()
         config.noisy           = self.photonNoiseCheck.isChecked()
-        config.bypass_stage    = None if not self.stopCombo.isEnabled() else self.stopCombo.currentText()
         config.texp_band       = self.passBandCombo.currentData()
         config.texp_use_band   = self.tExpPassBandRadio.isChecked()
         config.texp_wl         = self.tExpWlSpin.value() * 1e-6
@@ -799,7 +791,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.detector        = self.get_detector_config()
         config.telescope       = self.get_telescope_config()
 
-        self.bypass_stage = config.bypass_stage
+        config.bypass_stage    = self.bypass_stage
 
         return config
 
@@ -823,6 +815,16 @@ class SimUiWindow(QtWidgets.QMainWindow):
             return False
     
         return True
+
+    def do_configure_stages(self):
+        dlg = StageSelectDialog(self)
+        dlg.set_response(self.preview_current_response())
+        dlg.set_prune_list(self.bypass_stage)
+
+        if dlg.exec():
+            self.bypass_stage = dlg.get_prune_list()
+            self.refresh_spect_ui_state()
+            self.changed.emit()
 
     def do_save(self):
         if self.filename is None:
@@ -899,6 +901,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.do_open()
 
+    def on_open_stage_dialog(self):
+        self.do_configure_stages()
+
     def on_save(self):
         self.do_save()
 
@@ -914,7 +919,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.notify_changes()
         self.refresh_instrument_mode_ui_state()
         self.refresh_spect_ui_state()
-        self.refresh_bypass_stages()
 
     def on_state_widget_changed(self):
         self.notify_changes()

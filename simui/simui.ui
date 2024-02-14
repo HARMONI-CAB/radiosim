@@ -811,7 +811,7 @@ font-weight: bold;</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>98</width>
+                       <width>62</width>
                        <height>38</height>
                       </rect>
                      </property>
@@ -1443,32 +1443,6 @@ font-weight: bold;</string>
               <property name="bottomMargin">
                <number>0</number>
               </property>
-              <item row="0" column="2">
-               <widget class="QCheckBox" name="overrideLabelCheck">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Override label</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QCheckBox" name="logScaleCheck">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Log scale</string>
-                </property>
-               </widget>
-              </item>
               <item row="0" column="3">
                <widget class="QLineEdit" name="overrideLabelEdit">
                 <property name="sizePolicy">
@@ -1482,7 +1456,40 @@ font-weight: bold;</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
+              <item row="0" column="2">
+               <widget class="QCheckBox" name="overrideLabelCheck">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>&amp;Custom label</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QCheckBox" name="logScaleCheck">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>&amp;Log</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="4">
+               <widget class="QPushButton" name="toggleBypassButton">
+                <property name="text">
+                 <string>Toggle &amp;stages</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
                <widget class="QCheckBox" name="photonNoiseCheck">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1491,24 +1498,7 @@ font-weight: bold;</string>
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>Detector noise</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QCheckBox" name="stopCheck">
-                <property name="text">
-                 <string>Bypass from</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="3">
-               <widget class="QComboBox" name="stopCombo">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
+                 <string>&amp;Noise</string>
                 </property>
                </widget>
               </item>

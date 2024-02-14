@@ -65,6 +65,19 @@ class CompoundResponse(StageResponse.StageResponse):
             self._stages = self._stages[:ndx]
         return ndx
 
+    def prune(self, what: list):
+        actual_stages = []
+
+        for i in range(len(self._stages)):
+            label = self._stages[i].get_label()
+            if label not in what:
+                actual_stages.append(self._stages[i])
+
+        self._stages = actual_stages
+
+    def stages(self):
+        return self._stages
+    
     def get_entrance_node_name(self):
         return self._stages[0].get_entrance_node_name()
 

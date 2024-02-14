@@ -28,6 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+from .StageSelectDialog import StageSelectDialog
 from .SimUiWindow import SimUiWindow
 from .PlotWidget  import PlotWidget
 from .LampControlWidget import LampControlWidget

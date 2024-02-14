@@ -368,7 +368,7 @@ class SimUI(QObject):
         response = self.make_current_response()
 
         if self.config.bypass_stage is not None:
-            response.prune_forward(self.config.bypass_stage)
+            response.prune(self.config.bypass_stage)
 
         if self.config.cal_select:
             spectrum = self.make_cal_mode_spectrum()
