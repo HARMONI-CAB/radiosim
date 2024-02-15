@@ -127,7 +127,7 @@ class Parameters():
         self.load_part("M1-M5", 'TTel', area_scaling=False, n_mirrors=1, t_mirror="ELT_mirror_reflectivity.txt")
         self.load_part("Offner", 'TTel', area_scaling=False, n_mirrors=4)
 
-        self.load_part("LTAO dichroic", 'TTel', n_lenses=1, t_lens="LTAO_0.6_dichroic.txt", dust_lens=2.*dustfrac)
+        self.load_part("LTAO dichroic", 'TTel', n_lenses=1, emis_lens="LTAO_0.6_dichroic.txt", dust_lens=2.*dustfrac)
         self.load_part("AO cold trap", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=0.03, emis_dust=ecoldtrap)
         self.load_part("Outer window", 'Touter_window', n_lenses=1, emis_scaling=0.5, dust_lens=dustfrac + self.mindustfrac)
         self.load_part("Inner window", 'Tinner_window', n_lenses=1, emis_scaling=0.5, dust_lens=2.*self.mindustfrac)

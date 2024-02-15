@@ -604,7 +604,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def refresh_spect_ui_state(self):
         lampsOn      = self.any_lamp_is_on()
         shouldEnable = self.should_enable_yaxis()
-        isBypassable = self.spectTypeCombo.currentData() == 'detector'
+        isBypassable = self.spectTypeCombo.currentData() != 'is_out'
 
         if len(self.bypass_stage) > 0:
             self.toggleBypassButton.setText('Toggle &stages*')

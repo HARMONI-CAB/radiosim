@@ -244,7 +244,11 @@ class SimUI(QObject):
         resp_config['fD_ins']  = HARMONI_INST_FNUM
         resp_config['fD_fix']  = HARMONI_INST_FNUM
 
-        return self.params.make_response(resp_config)
+        response = self.params.make_response(resp_config)
+        if self.config.bypass_stage is not None:
+            response.prune(self.config.bypass_stage)
+
+        return response
 
     def get_selected_coating(self):
         # Initialize integrating sphere
@@ -366,9 +370,6 @@ class SimUI(QObject):
 
         # Initialize optical train
         response = self.make_current_response()
-
-        if self.config.bypass_stage is not None:
-            response.prune(self.config.bypass_stage)
 
         if self.config.cal_select:
             spectrum = self.make_cal_mode_spectrum()
