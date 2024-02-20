@@ -196,7 +196,8 @@ class SimUI(QObject):
         for lamp in lamp_nodes:
             graph += f'  {lamp} -> input;\n'
         
-        graph += f'  input -> {response.get_entrance_node_name()};\n'
+        if len(response.stages()) > 0:
+            graph += f'  input -> {response.get_entrance_node_name()};\n'
 
         graph += '}'
 
