@@ -299,6 +299,14 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.lampLayout.addItem(QSpacerItem(1, 1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 
+    def populate_spect_types(self):
+        # Add spectrum types
+        self.spectTypeCombo.clear()
+        self.spectYAxisCombo.clear()
+
+        for type in self.params.get_spectrum_types():
+            self.spectTypeCombo.addItem(self.params.get_spectrum_type_desc(type), userData = type)
+        
     def refresh_params(self):
         self.refresh_lamps()
         self.refresh_temps()
@@ -330,13 +338,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for s in scales:
             self.scaleCombo.addItem(fr'{s[0]}x{s[1]}', userData = list(s))
         self.refresh_spect_list()
-
-        # Add spectrum types
-        self.spectTypeCombo.clear()
-        self.spectYAxisCombo.clear()
-
-        for type in self.params.get_spectrum_types():
-            self.spectTypeCombo.addItem(self.params.get_spectrum_type_desc(type), userData = type)
+        self.populate_spect_types()
             
         # Populate passband centers:
         self.passBandCombo.clear()
@@ -356,7 +358,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         if type is None:
             self.spectYAxisCombo.setEnabled(False)
             return
-        
+        elif type == 'is_in' and not self.is_cal_selected():
+            self.spectYAxisCombo.setEnabled(False)
+            return
+
         spectrums = self.params.get_spectrums_for_type(type)
         if spectrums is None:
             self.spectYAxisCombo.setEnabled(False)

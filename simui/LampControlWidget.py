@@ -122,7 +122,7 @@ class LampControlWidget(QtWidgets.QWidget):
         if config.power is not None and self.powerAdjustable:
             self.lampPowerSpin.setValue(config.power)
         self.attenSlider.setValue(config.attenuation)
-        self.effAreaSpin.setVale(config.effective_area * 1e4)
+        self.effAreaSpin.setVale(config.effective_area * 1e6)
         
         self.set_fiber(config.fiber)
         self.fiberLengthSpin.setValue(config.fiber_length)
@@ -133,7 +133,7 @@ class LampControlWidget(QtWidgets.QWidget):
         config.is_on          = self.lampOnOffButton.isChecked()
         config.power          = self.lampPowerSpin.value() if self.powerAdjustable else None
         config.attenuation    = self.attenSlider.value()
-        config.effective_area = self.effAreaSpin.value() * 1e-4
+        config.effective_area = self.effAreaSpin.value() * 1e-6
         config.fiber          = self.fiberTypeCombo.currentText()
         config.fiber_length   = self.fiberLengthSpin.value()
 

@@ -69,10 +69,10 @@ class ISRadianceSpectrum(RadianceSpectrum):
         self._max_wl = -1
         self._lamps.append(spectrum)
 
-    def get_total_psd(self, wl):
+    def get_total_psd(self, wl, nu = None):
         result = 0
         for spectrum in self._lamps:
-            result += spectrum.PSD(wl)
+            result += spectrum.PSD(wl = wl, nu = nu)
         
         return result
 

@@ -151,6 +151,9 @@ class DetectorSimulator:
     def set_spectrum(self, spectrum):
         self.spectrum = spectrum
 
+    def get_spectrum(self):
+        return self.spectrum
+    
     def get_I(self, wl = None, nu = None, atten = True):
         """Returns attenuated? radiance (W/(m^2 m sr))"""
         if atten:

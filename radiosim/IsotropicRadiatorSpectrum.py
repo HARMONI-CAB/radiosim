@@ -34,6 +34,16 @@ from . import PowerSpectrum
 from . import WIEN_B
 from . import SPEED_OF_LIGHT
 
+#
+# In order to convert from radiance to power we have to take into account
+# the following facts:
+#
+# - The isotropic radiator refers to a Lambertian sphere of certain area
+# - The surface does not radiante in all directions. In particular:
+#   1. The sphere is opaque. This divides the angular sphere from 4pi to 2pi
+#   2. The emission is weighted by the angle with a factor cos theta. This
+#      scales down the energy again by 1/2, resulting in pi.
+
 class IsotropicRadiatorSpectrum(PowerSpectrum):
     def __init__(self, area, radiance):
         super().__init__()

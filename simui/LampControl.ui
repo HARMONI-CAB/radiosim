@@ -175,6 +175,9 @@ color: white;
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
            <property name="suffix">
             <string> W</string>
            </property>
@@ -188,17 +191,23 @@ color: white;
          </item>
          <item row="2" column="1" colspan="2">
           <widget class="QDoubleSpinBox" name="effAreaSpin">
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
            <property name="suffix">
-            <string> cm²</string>
+            <string> mm²</string>
+           </property>
+           <property name="decimals">
+            <number>3</number>
            </property>
            <property name="minimum">
-            <double>0.010000000000000</double>
+            <double>0.001000000000000</double>
            </property>
            <property name="maximum">
-            <double>10000.000000000000000</double>
+            <double>1000000.000000000000000</double>
            </property>
            <property name="value">
-            <double>0.800000000000000</double>
+            <double>12.863000000000000</double>
            </property>
           </widget>
          </item>
@@ -207,6 +216,9 @@ color: white;
          </item>
          <item row="4" column="1" colspan="2">
           <widget class="QDoubleSpinBox" name="fiberLengthSpin">
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
            <property name="suffix">
             <string> m</string>
            </property>

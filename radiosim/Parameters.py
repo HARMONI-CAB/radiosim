@@ -141,7 +141,12 @@ class Parameters():
 	    # Cryostat
         self.load_part("Pre-optics+IFU+Spectrograph", 'TCryoMech', n_lenses=8, n_mirrors=19)
 
+        self.is_input_types = {
+            'spect_PSD'   : ('Power spectral density', 'Wν⁻¹')
+        }
+
         self.is_spect_types = {
+            'spect_I'   : ('Spectral radiance',       'Wm⁻²sr⁻¹ν⁻¹'),
             'spect_E'   : ('Spectral irradiance',     'Wm⁻²ν⁻¹'),
             'photon_I'  : ('Photon radiance',         'm⁻²s⁻¹ν⁻¹arcsec⁻²'),
             'photon_F'  : ('Photon irradiance',       'm⁻²s⁻¹ν⁻¹'),
@@ -149,6 +154,7 @@ class Parameters():
         }
 
         self.ccd_spect_types = {
+            'spect_I'   : ('Spectral radiance',       'Wm⁻²sr⁻¹ν⁻¹'),
             'spect_E'   : ('Spectral irradiance',     'Wm⁻²ν⁻¹'),
             'photon_I'  : ('Photon radiance',         'm⁻²s⁻¹ν⁻¹arcsec⁻²'),
             'photon_F'  : ('Photon irradiance',       'm⁻²s⁻¹ν⁻¹'),
@@ -160,6 +166,7 @@ class Parameters():
 
         self.transmission_types = {}
         self.spect_types = {
+            'is_in'        : ('IS light input', self.is_input_types),
             'is_out'       : ('Input spectra (IS or telescope)', self.is_spect_types),
             'detector'     : ('Detector', self.ccd_spect_types),
             'transmission' : ('Total transmission spectrum', self.transmission_types),

@@ -453,12 +453,30 @@ class SimUI(QObject):
             x  = wl * 1e6 # In µm
 
         if y_axis == 'photon_I':
-            K /= ARCSEC2_PER_SR # Radiances must be /arcsec2
+            # Photon radiances must be /arcsec2 for comparison with HSIM
+            K /= ARCSEC2_PER_SR
 
-        if type == 'is_out':
+        if type == 'is_in':
+            if not self.config.cal_select:
+                raise Exception(fr'IS input is only available in CAL mode')
+
+            # get_spectrum() returns an AttenuatedSpectrum
+            # get_source_spectrum() returns an ISRadianceSpectrum
+            inputSpectrum = self.detsim.get_spectrum().get_source_spectrum()
+
+            # The non-attenuated spectrum is the power spectral density.
+            # However, 
+            if y_axis == 'spect_PSD':
+                y = K * inputSpectrum.get_total_psd(wl = wl, nu = nu)
+            else:
+                raise Exception(fr'Invalid quantity {type}:{y_axis}')
+
+        elif type == 'is_out':
             if label is None:
                 label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
-            if y_axis == 'spect_E':
+            if y_axis == 'spect_I':
+                y = K * self.detsim.get_I(wl = wl, nu = nu, atten = False)
+            elif y_axis == 'spect_E':
                 y = K * self.detsim.get_E(wl = wl, nu = nu, atten = False)
             elif y_axis == 'photon_I':
                 y = K * self.detsim.get_photon_radiance(wl, nu, atten = False)
@@ -471,7 +489,9 @@ class SimUI(QObject):
         elif type == 'detector':
             if label is None:
                 label = fr'{self.lamp_text} ({tdesc}, {self.config.grating}, {self.config.aomode})'
-            if y_axis == 'spect_E':
+            if y_axis == 'spect_I':
+                y = K * self.detsim.get_I(wl = wl, nu = nu, atten = True)
+            elif y_axis == 'spect_E':
                 y = K * self.detsim.get_E(wl = wl, nu = nu, atten = True)
             elif y_axis == 'photon_I':
                 y = K * self.detsim.get_photon_radiance(wl, nu, atten = True)
