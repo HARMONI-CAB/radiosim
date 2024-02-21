@@ -604,8 +604,8 @@ class Parameters():
         self.load_black_coating('BLACK',  "Perfect black")
 
         # Load lamps
-        self.add_arc_lamps()
         self.load_black_body_lamp('Black body', 3422, rating = 100)
+        self.add_arc_lamps()
         
         # Load fibers for lamps
         self.load_transparent_fiber("No fiber")
