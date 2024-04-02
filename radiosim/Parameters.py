@@ -127,19 +127,34 @@ class Parameters():
         self.load_part("M1-M5", 'TTel', area_scaling=False, n_mirrors=1, t_mirror="ELT_mirror_reflectivity.txt")
         self.load_part("Offner", 'TTel', area_scaling=False, n_mirrors=4)
 
-        self.load_part("LTAO dichroic", 'TTel', n_lenses=1, emis_lens="LTAO_0.6_dichroic.txt", dust_lens=2.*dustfrac)
-        self.load_part("AO cold trap", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=0.03, emis_dust=ecoldtrap)
-        self.load_part("Outer window", 'Touter_window', n_lenses=1, emis_scaling=0.5, dust_lens=dustfrac + self.mindustfrac)
-        self.load_part("Inner window", 'Tinner_window', n_lenses=1, emis_scaling=0.5, dust_lens=2.*self.mindustfrac)
-        self.load_part("Window reflected", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.*0.8*2.0*rwindow, emis_dust=ecoldtrap)
-        self.load_part("FPRS", 'TCool', area_scaling=False, n_mirrors=4)
-        self.load_part("SCAO dichroic", 'TCool', n_lenses=1, emis_lens="SCAO_0.8_dichroic.txt", dust_lens=2.*dustfrac)
-        self.load_part("Cryo window", 'TCool', n_lenses=1, emis_scaling=0.4, dust_lens=self.mindustfrac)
-        self.load_part("Cryo window inner dust", 'TCryoDust', n_mirrors=1, emis_mirror=0., dust_mirror=self.mindustfrac)
-        self.load_part("Cryo window cold trap", 'TCryoTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.0*rwindow, emis_dust=ecoldtrap)
+        if RADIOSIM_USE_HSIM_EMIS:
+            self.load_part("LTAO dichroic", 'TTel', n_lenses=1, emis_lens="LTAO_0.6_dichroic.txt", dust_lens=2.*dustfrac)
+            self.load_part("AO cold trap", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=0.03, emis_dust=ecoldtrap)
+            self.load_part("Outer window", 'Touter_window', n_lenses=1, emis_scaling=0.5, dust_lens=dustfrac + self.mindustfrac)
+            self.load_part("Inner window", 'Tinner_window', n_lenses=1, emis_scaling=0.5, dust_lens=2.*self.mindustfrac)
+            self.load_part("Window reflected", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.*0.8*2.0*rwindow, emis_dust=ecoldtrap)
+            self.load_part("FPRS", 'TCool', area_scaling=False, n_mirrors=4)
+            self.load_part("SCAO dichroic", 'TCool', n_lenses=1, emis_lens="SCAO_0.8_dichroic.txt", dust_lens=2.*dustfrac)
 
-	    # Cryostat
-        self.load_part("Pre-optics+IFU+Spectrograph", 'TCryoMech', n_lenses=8, n_mirrors=19)
+            # Cryostat
+            self.load_part("Cryo window", 'TCool', n_lenses=1, emis_scaling=0.4, dust_lens=self.mindustfrac)
+            self.load_part("Cryo window inner dust", 'TCryoDust', n_mirrors=1, emis_mirror=0., dust_mirror=self.mindustfrac)
+            self.load_part("Cryo window cold trap", 'TCryoTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.0*rwindow, emis_dust=ecoldtrap)
+            self.load_part("Pre-optics+IFU+Spectrograph", 'TCryoMech', n_lenses=8, n_mirrors=19)
+        else:
+            self.load_part("LTAO dichroic", 'TTel', n_lenses=1, t_lens="t-ltao-d.csv", dust_lens=2.*dustfrac)
+            self.load_part("AO cold trap", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=0.03, emis_dust=ecoldtrap)
+            self.load_part("Outer window", 'Touter_window', n_lenses=1, emis_scaling=0.5, dust_lens=dustfrac + self.mindustfrac)
+            self.load_part("Inner window", 'Tinner_window', n_lenses=1, emis_scaling=0.5, dust_lens=2.*self.mindustfrac)
+            self.load_part("Window reflected", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.*0.8*2.0*rwindow, emis_dust=ecoldtrap)
+            self.load_part("FPRS", 'TCool', area_scaling=False, n_mirrors=1, t_mirror="t-fprs.csv")
+            self.load_part("SCAO dichroic", 'TCool', n_lenses=1, t_lens="t-scao-d.csv", dust_lens=2.*dustfrac)
+            self.load_part("Cryostat", 'TCool', n_lenses=1, t_lens = 't-cryostat.csv', emis_scaling=0.4, dust_lens=self.mindustfrac)
+            self.load_part("Pre-Optics", 'TCryoMech', n_lenses=1, t_lens = 't-preoptics.csv')
+            self.load_part("IFU", 'TCryoMech', n_mirrors=1, t_mirror = 't-ifu.csv')
+            self.load_part("Spectrograph", 'TCryoMech', n_mirrors=1, t_mirror = 't-spectrograph.csv')
+            self.load_part("Misalign", 'TCryoMech', n_mirrors=1, t_mirror = 't-misalignment.csv')
+            self.load_part("Detector", 'TCryoMech', n_lenses=1, t_lens = 't-detector.csv')
 
         self.is_input_types = {
             'spect_PSD'   : ('Power spectral density', 'Wν⁻¹')
@@ -578,16 +593,30 @@ class Parameters():
         if ao == 'SCAO':
             response.push_back(self.get_part('SCAO dichroic'), fD_ins)
         
-        # Cryostat window has several parts too
-        response.push_back(self.get_part('Cryo window'), fD_ins)
-        response.push_back(self.get_part('Cryo window inner dust'), fD_ins)
-        response.push_back(self.get_part('Cryo window cold trap'), fD_ins)
+        if RADIOSIM_USE_HSIM_EMIS:
+            # Cryostat window has several parts too
+            response.push_back(self.get_part('Cryo window'), fD_ins)
+            response.push_back(self.get_part('Cryo window inner dust'), fD_ins)
+            response.push_back(self.get_part('Cryo window cold trap'), fD_ins)
 
-        # Cryostat
-        response.push_back(self.get_part('Pre-optics+IFU+Spectrograph'), fD_fix)
+            # Cryostat
+            response.push_back(self.get_part('Pre-optics+IFU+Spectrograph'), fD_fix)
 
-        # Push grating
-        response.push_back(gr_obj[0], fD_fix)
+            # Push grating
+            response.push_back(gr_obj[0], fD_fix)
+        else:
+            response.push_back(self.get_part('Cryostat'), fD_ins)
+            response.push_back(self.get_part('Pre-Optics'), fD_fix)
+            response.push_back(self.get_part('IFU'), fD_fix)
+            response.push_back(self.get_part('Spectrograph'), fD_fix)
+            response.push_back(self.get_part('Misalign'), fD_fix)
+
+            # Push grating BEFORE detector
+            response.push_back(gr_obj[0], fD_fix)
+
+            response.push_back(self.get_part('Detector'), fD_fix)
+
+        
 
         return response
 
@@ -604,6 +633,13 @@ class Parameters():
         self.load_black_coating('BLACK',  "Perfect black")
 
         # Load lamps
+        self.load_lamp(
+            'HES100W',
+            'PSD-HES-100W.csv',
+            100,
+            'HES-100W @ 3000K with 2" FWs + holder',
+            psd = True)
+            
         self.load_black_body_lamp('Black body', 3422, rating = 100)
         self.add_arc_lamps()
         

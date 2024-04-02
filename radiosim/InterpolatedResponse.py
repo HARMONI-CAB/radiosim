@@ -41,22 +41,25 @@ class InterpolatedResponse(StageResponse):
         # This looks transposed
         if resp.shape[0] == 2 and resp.shape[1] != 2:
             resp = resp.transpose()
-        
-        resp[:, 0] *= 1e-6 # Adjust units from µm to m
+
+        self._nodes = resp[:, 0] * 1e-6 # Adjust units from µm to m
 
         if emissivity:
             self._interp = scipy.interpolate.interp1d(
-                resp[:, 0],
+                self._nodes,
                 1 - resp[:, 1] * scale,
                 bounds_error = False,
                 fill_value = 0.)
         else:
             self._interp = scipy.interpolate.interp1d(
-                resp[:, 0],
+                self._nodes,
                 resp[:, 1] * scale,
                 bounds_error = False,
                 fill_value = 0.)
 
+    def get_nodes(self):
+        return self._nodes
+    
     def get_t(self, wl):
         return self._interp(wl).ravel()[0]
 
