@@ -639,7 +639,14 @@ class Parameters():
             100,
             'HES-100W @ 3000K with 2" FWs + holder',
             psd = True)
-            
+        
+        self.load_lamp(
+            'HES50W',
+            'PSD-HES-50W.csv',
+            50,
+            'HES-50W @ 3000K with 2" FWs + holder',
+            psd = True)
+        
         self.load_black_body_lamp('Black body', 3422, rating = 100)
         self.add_arc_lamps()
         
