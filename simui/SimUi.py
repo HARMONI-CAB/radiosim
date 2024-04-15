@@ -580,6 +580,7 @@ class SimUI(QObject):
         self.config = self.window.get_config()
         self.refresh_instrument_graph()
 
+
 def startSimUi(params):
     ui = SimUI()
 
