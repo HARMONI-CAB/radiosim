@@ -67,9 +67,19 @@ class CompoundResponse(StageResponse.StageResponse):
 
     def prune(self, what: list):
         actual_stages = []
+        is_eq = False
 
+        for el in what:
+            is_eq = 'Equalizer: ' in el
+            if is_eq:
+                break
+    
         for i in range(len(self._stages)):
             label = self._stages[i].get_label()
+            
+            if is_eq and 'Equalizer: ' in label:
+                continue
+        
             if label not in what:
                 actual_stages.append(self._stages[i])
 

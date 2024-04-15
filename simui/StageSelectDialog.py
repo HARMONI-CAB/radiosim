@@ -47,6 +47,14 @@ class StageSelectDialog(QtWidgets.QDialog):
     self.refresh_ui()
     self.setWindowTitle('Enable/Disable stages')
 
+  def is_stage_enabled(self, label: str):
+    if 'Equalizer: ' in label:
+      for stage in self._pruned:
+        if 'Equalizer: ' in stage:
+          return False
+
+    return label not in self._pruned
+
   def refresh_ui(self):
     # Remove placeholders
     for i in reversed(range(self.scrollAreaLayout.count())):
@@ -71,7 +79,7 @@ class StageSelectDialog(QtWidgets.QDialog):
           name  = stage.get_entrance_node_name()
 
           widget.setText(label)
-          widget.setChecked(label not in self._pruned)
+          widget.setChecked(self.is_stage_enabled(label))
           
           self._checkboxes[name] = widget
 
