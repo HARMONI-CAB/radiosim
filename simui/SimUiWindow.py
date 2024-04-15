@@ -183,6 +183,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.tExpProgressBar.setValue(int(progress * 1e2))
     
     def clear_plot(self):
+        self.curves = []
         self.plotWidget.clear()
         self.plotStack.setCurrentIndex(0)
         self.curr_x_units = None
