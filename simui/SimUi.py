@@ -233,17 +233,17 @@ class SimUI(QObject):
             toRad   = angle / 180. * np.pi
             airmass = 1. / np.cos(toRad)
         
-        resp_config['grating'] = self.config.grating
-        resp_config['ao']      = self.config.aomode
-        resp_config['cal']     = self.config.cal_select
-        resp_config['airmass'] = airmass
-
+        resp_config['grating']   = self.config.grating
+        resp_config['ao']        = self.config.aomode
+        resp_config['cal']       = self.config.cal_select
+        resp_config['airmass']   = airmass
+        resp_config['custom_eq'] = self.config.custom_eq
         # Incrementing the scale means that the same pixel covers more sky.
         # This reduces the effective focal length in the involved parts.
-        resp_config['fD_tel']  = self.get_sky_fnum()
-        resp_config['fD_cal']  = HARMONI_INST_FNUM
-        resp_config['fD_ins']  = HARMONI_INST_FNUM
-        resp_config['fD_fix']  = HARMONI_INST_FNUM
+        resp_config['fD_tel']    = self.get_sky_fnum()
+        resp_config['fD_cal']    = HARMONI_INST_FNUM
+        resp_config['fD_ins']    = HARMONI_INST_FNUM
+        resp_config['fD_fix']    = HARMONI_INST_FNUM
 
         response = self.params.make_response(resp_config)
         if self.config.bypass_stage is not None:

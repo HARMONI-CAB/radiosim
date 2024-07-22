@@ -119,6 +119,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.zenithSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.moonSlider.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.isCoatingCombo.activated.connect(self.on_inst_mode_widget_changed)
+        self.customEqCombo.activated.connect(self.on_inst_mode_widget_changed)
         self.isRadiusSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.isApertureDiamSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.fNSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
@@ -321,6 +322,13 @@ class SimUiWindow(QtWidgets.QMainWindow):
         for type in self.params.get_spectrum_types():
             self.spectTypeCombo.addItem(self.params.get_spectrum_type_desc(type), userData = type)
         
+    def populate_custom_eqs(self):
+        self.customEqCombo.clear()
+        self.customEqCombo.addItem("(Grating's default)")
+
+        for type in self.params.get_custom_eq_names():
+            self.customEqCombo.addItem(type, userData = type)
+        
     def refresh_params(self):
         self.refresh_lamps()
         self.refresh_temps()
@@ -353,7 +361,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.scaleCombo.addItem(fr'{s[0]}x{s[1]}', userData = list(s))
         self.refresh_spect_list()
         self.populate_spect_types()
-            
+        self.populate_custom_eqs()
+
         # Populate passband centers:
         self.passBandCombo.clear()
         for g in gratings:
@@ -480,6 +489,13 @@ class SimUiWindow(QtWidgets.QMainWindow):
                 raise RuntimeError(fr'Failed to set scale: UI sync error')
             
             self.scaleCombo.setCurrentIndex(index)
+
+    def set_custom_eq(self, custom_eq):
+            index = self.customEqCombo.findData(custom_eq)
+            if index == -1:
+                raise RuntimeError(fr'Failed to set equalizer combo: UI sync error')
+            
+            self.customEqCombo.setCurrentIndex(index)
 
     def set_spectrum_config(self, type, spect):
         if type is None:
@@ -685,10 +701,11 @@ class SimUiWindow(QtWidgets.QMainWindow):
         cal     = self.instModeCombo.currentIndex() == 0
         airmass = 1.1
 
-        resp_config['grating'] = grating
-        resp_config['ao']      = aomode
-        resp_config['cal']     = cal
-        resp_config['airmass'] = airmass
+        resp_config['grating']   = grating
+        resp_config['ao']        = aomode
+        resp_config['cal']       = cal
+        resp_config['airmass']   = airmass
+        resp_config['custom_eq'] = self.customEqCombo.currentData()
 
         response = self.params.make_response(resp_config)
 
@@ -699,7 +716,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.apertureSpin.setValue(config.aperture)
         self.zenithSpin.setValue(config.zenith_distance)
         self.collectingAreaSpin.setValue(config.collecting_area)
-        self.moonSlider.setValue(config.moon * 100)
+        self.moonSlider.setValue(int(config.moon * 100))
         self.efficiencySpin.setValue(config.efficiency * 100)
 
         self.refresh_airmass()
@@ -720,7 +737,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
             self.set_scale(config.scale)
-
+            self.set_custom_eq(config.custom_eq)
             self.set_detector_config(config.detector)
 
             self.expTimeSpin.setValue(config.t_exp)
@@ -785,6 +802,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.is_coating      = self.isCoatingCombo.currentData()
         config.is_aperture     = self.isApertureDiamSpin.value() * 1e-3
         config.is_radius       = self.isRadiusSpin.value() * 1e-3
+        config.custom_eq       = self.customEqCombo.currentData()
         config.lambda_sampling = self.lambdaSamplingSpin.value()
         config.binning         = self.binningSpin.value()
         config.grating         = self.gratingCombo.currentText()

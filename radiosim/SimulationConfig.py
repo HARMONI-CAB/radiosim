@@ -187,6 +187,7 @@ class SimulationConfig(SerializableConfig):
         self.is_aperture     = .5e-1
         self.is_coating      = 'SPECTRALON'
         self.offner_f        = 17.37 # See CALIBRATION UNIT RELAY OPTICAL DESIGN
+        self.custom_eq       = None
         self.bypass_stage    = []
         self.binning         = 1
         self.lambda_sampling = 2.2
@@ -210,8 +211,9 @@ class SimulationConfig(SerializableConfig):
 
         self.texp_iters      = 1000
 
-        self.detector_config = {}
-        
+        self.detector_config  = {}
+        self.telescope_config = {}
+    
     def set_lamp_config(self, name, lamp):
         self.lamps[name] = lamp
     
@@ -226,7 +228,8 @@ class SimulationConfig(SerializableConfig):
         self.save_param("is_radius")
         self.save_param("is_aperture")
         self.save_param("offner_f")
-        
+        self.save_param("custom_eq")
+
         self.save_param("binning")
         self.save_param('grating')
         self.save_param('aomode')

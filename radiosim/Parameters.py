@@ -79,6 +79,7 @@ class Parameters():
         self.lamps       = {}
         self.filters     = {}
         self.fibers      = {}
+        self.custom_eqs  = {}
         self.is_coatings = {}
         self.equalizers  = {}
         self.gratings    = {}
@@ -197,7 +198,9 @@ class Parameters():
             self.transmission_types['filter:' + filter] = (self.get_filter(filter), 'fraction')
         for eq in self.get_equalizer_names():
             self.transmission_types['eq:' + eq] = (self.get_equalizer(eq), 'fraction')
-    
+        for eq in self.get_custom_eq_names():
+            self.transmission_types['custom_eq:' + eq] = (self.get_custom_eq(eq), 'fraction')
+        
     def get_transmission(self, name):
         if name in self.transmission_types:
             return self.transmission_types[name][0]
@@ -499,6 +502,22 @@ class Parameters():
     def get_equalizer_names(self):
         return list(self.equalizers.keys())
     
+    def load_custom_eq(self, name, path):
+        full_path = self.resolve_data_file(path)
+        response = InterpolatedResponse(full_path)
+        response.set_label('Custom Eq: ' + name)
+        self.link_part_to_temperature(response, 'TCal')
+        self.custom_eqs[name] = response
+        return self.custom_eqs[name]
+
+    def get_custom_eq(self, name):
+        if name not in self.custom_eqs:
+            return None
+        return self.custom_eqs[name]
+    
+    def get_custom_eq_names(self):
+        return list(self.custom_eqs.keys())
+
     def register_grating(self, grating, filter, equalizer, R, lambda_min, lambda_max):
         filter_obj = self.get_filter(filter)
         if filter_obj is None:
@@ -562,7 +581,11 @@ class Parameters():
     
         if cal:
             # Push equalizer
-            response.push_back(gr_obj[1], fD_cal)
+            if config['custom_eq'] is not None:
+                name = config['custom_eq']
+                response.push_back(self.get_custom_eq(name), fD_cal)
+            else:
+                response.push_back(gr_obj[1], fD_cal)
             response.push_back(self.get_part("Offner"), fD_cal)
         else:
             # Push telescope
@@ -693,6 +716,14 @@ class Parameters():
         self.load_equalizer("HR3",    "f-hr3.csv")
         self.load_equalizer("HR4",    "f-hr4.csv")
         
+        # Load custom (COTS) equalizer
+        self.load_custom_eq("LB120", "LB120.csv")
+        self.load_custom_eq("LB140", "LB140.csv")
+        self.load_custom_eq("LB200", "LB200.csv")
+        self.load_custom_eq("EB390", "EB390.csv")
+        self.load_custom_eq("B440",  "B440.csv")
+        self.load_custom_eq("C5000", "C5000.csv")
+
         # Register available gratings
         self.register_grating("VIS", "VIS", "VIS", 3100, 0.462e-6, 0.812e-6)
         

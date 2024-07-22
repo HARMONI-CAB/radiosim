@@ -293,7 +293,7 @@ font-weight: bold;</string>
                   </sizepolicy>
                  </property>
                  <property name="currentIndex">
-                  <number>1</number>
+                  <number>0</number>
                  </property>
                  <widget class="QWidget" name="page_7">
                   <property name="sizePolicy">
@@ -318,56 +318,37 @@ font-weight: bold;</string>
                    <property name="spacing">
                     <number>3</number>
                    </property>
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="label_8">
+                   <item row="3" column="1">
+                    <widget class="QComboBox" name="isCoatingCombo">
+                     <item>
+                      <property name="text">
+                       <string>Fully reflective</string>
+                      </property>
+                     </item>
+                    </widget>
+                   </item>
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label_15">
                      <property name="text">
-                      <string>Offner f#</string>
+                      <string>IS aperture</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                      </property>
                     </widget>
                    </item>
-                   <item row="0" column="1">
-                    <widget class="QDoubleSpinBox" name="fNSpin">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
+                   <item row="5" column="1">
+                    <spacer name="verticalSpacer_2">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
                      </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>1</height>
+                      </size>
                      </property>
-                     <property name="decimals">
-                      <number>3</number>
-                     </property>
-                     <property name="value">
-                      <double>17.370000000000001</double>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="2" column="1">
-                    <widget class="QDoubleSpinBox" name="isApertureDiamSpin">
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                     <property name="prefix">
-                      <string>⌀ </string>
-                     </property>
-                     <property name="suffix">
-                      <string> mm</string>
-                     </property>
-                     <property name="minimum">
-                      <double>1.000000000000000</double>
-                     </property>
-                     <property name="maximum">
-                      <double>100.000000000000000</double>
-                     </property>
-                     <property name="value">
-                      <double>50.000000000000000</double>
-                     </property>
-                    </widget>
+                    </spacer>
                    </item>
                    <item row="1" column="0">
                     <widget class="QLabel" name="label_14">
@@ -408,19 +389,61 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="3" column="1">
-                    <widget class="QComboBox" name="isCoatingCombo">
-                     <item>
-                      <property name="text">
-                       <string>Fully reflective</string>
-                      </property>
-                     </item>
+                   <item row="2" column="1">
+                    <widget class="QDoubleSpinBox" name="isApertureDiamSpin">
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                     <property name="prefix">
+                      <string>⌀ </string>
+                     </property>
+                     <property name="suffix">
+                      <string> mm</string>
+                     </property>
+                     <property name="minimum">
+                      <double>1.000000000000000</double>
+                     </property>
+                     <property name="maximum">
+                      <double>100.000000000000000</double>
+                     </property>
+                     <property name="value">
+                      <double>50.000000000000000</double>
+                     </property>
                     </widget>
                    </item>
-                   <item row="2" column="0">
-                    <widget class="QLabel" name="label_15">
+                   <item row="0" column="1">
+                    <widget class="QDoubleSpinBox" name="fNSpin">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                     <property name="decimals">
+                      <number>3</number>
+                     </property>
+                     <property name="value">
+                      <double>17.370000000000001</double>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_8">
                      <property name="text">
-                      <string>IS aperture</string>
+                      <string>Offner f#</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="4" column="0">
+                    <widget class="QLabel" name="label_16">
+                     <property name="text">
+                      <string>Custom equalizer</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -428,17 +451,7 @@ font-weight: bold;</string>
                     </widget>
                    </item>
                    <item row="4" column="1">
-                    <spacer name="verticalSpacer_2">
-                     <property name="orientation">
-                      <enum>Qt::Vertical</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>20</width>
-                       <height>1</height>
-                      </size>
-                     </property>
-                    </spacer>
+                    <widget class="QComboBox" name="customEqCombo"/>
                    </item>
                   </layout>
                  </widget>
@@ -811,8 +824,8 @@ font-weight: bold;</string>
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>62</width>
-                       <height>38</height>
+                       <width>613</width>
+                       <height>229</height>
                       </rect>
                      </property>
                      <layout class="QVBoxLayout" name="tempLayout">
