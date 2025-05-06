@@ -128,13 +128,9 @@ class Parameters():
         self.load_part("M1-M5", 'TTel', area_scaling=False, n_mirrors=1, t_mirror="ELT_mirror_reflectivity.txt")
         self.load_part("Offner", 'TTel', area_scaling=False, n_mirrors=4)
 
+        self.load_part('MORFEO common path', 'TTel', area_scaling = False, n_mirrors = 1, t_mirror = 't-morfeo.csv')
+        
         if RADIOSIM_USE_HSIM_EMIS:
-            self.load_part("LTAO dichroic", 'TTel', n_lenses=1, emis_lens="LTAO_0.6_dichroic.txt", dust_lens=2.*dustfrac)
-            self.load_part("AO cold trap", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=0.03, emis_dust=ecoldtrap)
-            self.load_part("Outer window", 'Touter_window', n_lenses=1, emis_scaling=0.5, dust_lens=dustfrac + self.mindustfrac)
-            self.load_part("Inner window", 'Tinner_window', n_lenses=1, emis_scaling=0.5, dust_lens=2.*self.mindustfrac)
-            self.load_part("Window reflected", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.*0.8*2.0*rwindow, emis_dust=ecoldtrap)
-            self.load_part("FPRS", 'TCool', area_scaling=False, n_mirrors=4)
             self.load_part("SCAO dichroic", 'TCool', n_lenses=1, emis_lens="SCAO_0.8_dichroic.txt", dust_lens=2.*dustfrac)
 
             # Cryostat
@@ -143,13 +139,8 @@ class Parameters():
             self.load_part("Cryo window cold trap", 'TCryoTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.0*rwindow, emis_dust=ecoldtrap)
             self.load_part("Pre-optics+IFU+Spectrograph", 'TCryoMech', n_lenses=8, n_mirrors=19)
         else:
-            self.load_part("LTAO dichroic", 'TTel', n_lenses=1, t_lens="t-ltao-d.csv", dust_lens=2.*dustfrac)
-            self.load_part("AO cold trap", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=0.03, emis_dust=ecoldtrap)
-            self.load_part("Outer window", 'Touter_window', n_lenses=1, emis_scaling=0.5, dust_lens=dustfrac + self.mindustfrac)
-            self.load_part("Inner window", 'Tinner_window', n_lenses=1, emis_scaling=0.5, dust_lens=2.*self.mindustfrac)
-            self.load_part("Window reflected", 'TTrap', n_mirrors=1, emis_mirror=0., dust_mirror=2.*0.8*2.0*rwindow, emis_dust=ecoldtrap)
-            self.load_part("FPRS", 'TCool', area_scaling=False, n_mirrors=1, t_mirror="t-fprs.csv")
             self.load_part("SCAO dichroic", 'TCool', n_lenses=1, t_lens="t-scao-d.csv", dust_lens=2.*dustfrac)
+            
             self.load_part("Cryostat", 'TCool', n_lenses=1, t_lens = 't-cryostat.csv', emis_scaling=0.4, dust_lens=self.mindustfrac)
             self.load_part("Pre-Optics", 'TCryoMech', n_lenses=1, t_lens = 't-preoptics.csv')
             self.load_part("IFU", 'TCryoMech', n_mirrors=1, t_mirror = 't-ifu.csv')
@@ -556,7 +547,7 @@ class Parameters():
         return self.scales.keys()
 
     def get_ao_mode_names(self):
-        return ['NOAO', 'SCAO', 'LTAO']
+        return ['NOAO', 'SCAO']
     
     def make_response(self, config: dict):
         grating = config['grating']
@@ -573,7 +564,7 @@ class Parameters():
         response.set_label('Instrument response')
         ao       = ao.upper()
         grating  = grating.upper()
-        aomodes  = ['LTAO', 'SCAO', 'NOAO']
+        aomodes  = ['SCAO', 'NOAO']
 
         gr_obj = self.get_grating(grating)
         if gr_obj is None:
@@ -597,20 +588,7 @@ class Parameters():
         if not ao in aomodes:
             raise Exception("Undefined AO configuration " + ao)
 
-        # Put LTAO dichroic
-        if ao == 'LTAO':
-            response.push_back(self.get_part('LTAO dichroic'), fD_ins)
-            response.push_back(self.get_part('AO cold trap'), fD_ins)
-        
-        # HARMONI's window has a hot and a cold side
-        response.push_back(self.get_part('Outer window'), fD_ins)
-        response.push_back(self.get_part('Inner window'), fD_ins)
-
-        # We are already in the inside
-        response.push_back(self.get_part('Window reflected'), fD_ins)
-
-        # FPRS
-        response.push_back(self.get_part('FPRS'), fD_tel)
+        response.push_back(self.get_part('MORFEO common path'), fD_ins)
 
         # Put SCAO dichroic
         if ao == 'SCAO':
