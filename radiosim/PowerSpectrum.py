@@ -153,6 +153,6 @@ class PowerSpectrum(ABC):
 
         return axis[np.argmax(photons)]
 
-    # Power sources can only be defined in calibration mode
+    # Power sources can only be defined in HARMONI calibration mode
     def test_role(self, role):
-        return role == 'cal'
+        return role == 'HARMONI'

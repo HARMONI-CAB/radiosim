@@ -139,6 +139,7 @@ class SimUI(QObject):
             dialog.setWindowTitle("Simulation error")
             dialog.exec()   # Stores the return value for the button pressed
 
+
     def get_graphviz(self):
         graph = '''
         digraph {
@@ -147,7 +148,7 @@ class SimUI(QObject):
             edge [fontname="Helvetica", color="#505050", constaint=false];
         '''
 
-        role       = 'cal' if self.config.cal_select else 'telescope'
+        role       = self.config.role()
         response   = self.make_current_response()
         lamp_nodes = []
         count = 0
@@ -290,7 +291,7 @@ class SimUI(QObject):
             if config.is_on:
                 lamp_spectrum = self.params.get_lamp(lamp)
 
-                if lamp_spectrum.test_role('cal'):
+                if lamp_spectrum.test_role('HARMONI'):
                     if len(self.lamp_text) > 0:
                         self.lamp_text += ' + '
                     self.lamp_text += lamp

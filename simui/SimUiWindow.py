@@ -285,6 +285,12 @@ class SimUiWindow(QtWidgets.QMainWindow):
                 item.widget().deleteLater()
             self.skyLayout.removeItem(item)
 
+        for i in reversed(range(self.fcuLayout.count())): 
+            item = self.fcuLayout.itemAt(i)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+            self.fcuLayout.removeItem(item)
+
         if self.params is None:
             return
         
@@ -295,13 +301,29 @@ class SimUiWindow(QtWidgets.QMainWindow):
             params = self.params.get_lamp_params(lamp)
             widget = LampControlWidget(lamp, params, self.params)
 
-            if params[0].test_role('cal'):
+            if params[0].test_role('HARMONI'):
                 self.lampLayout.insertWidget(-1, widget)
-            else:
+            elif params[0].test_role('MICADO'):
+                self.fcuLayout.insertWidget(-1, widget)
+            elif params[0].test_role('telescope'):
                 self.skyLayout.insertWidget(-1, widget)
+            
             widget.changed.connect(self.on_lamp_changed)
             self.lamp_widgets[lamp] = widget
-        
+
+        # Fix FCU layout        
+        if self.fcuLayout.count() == 0:
+            noSources = QLabel()
+            noSources.setText('No light sources defined. Open at least one radiance curve to start a simulation.')
+            noSources.setStyleSheet('font-style: italic;')
+            noSources.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            noSources.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+            noSources.setWordWrap(True)
+            self.fcuLayout.insertWidget(-1, noSources)
+        else:
+            self.fcuLayout.addItem (QSpacerItem(1, 1, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
+        # Fix sky source layout
         if self.skyLayout.count() == 0:
             noSources = QLabel()
             noSources.setText('No light sources defined. Open at least one datacube to run a simulation.')
@@ -448,13 +470,20 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
     def refresh_instrument_mode_ui_state(self):
         self.calModeStack.setCurrentIndex(self.instModeCombo.currentIndex())
-        self.sourceStack.setCurrentIndex(self.instModeCombo.currentIndex())
-        
+
         if self.calModeStack.currentIndex() == 0:
+            if self.get_cal_source() == 'MICADO':
+                self.sourceStack.setCurrentIndex(2)
+            elif self.get_cal_source() == 'HARMONI':
+                self.sourceStack.setCurrentIndex(0)
+            else:
+                raise Exception(fr'Unsupported calibration source type')
+            
             self.refresh_cm_ui_state()
         else:
+            self.sourceStack.setCurrentIndex(1)
             self.refresh_telescope_ui_state()
-    
+            
     def refresh_ui_state(self):
         self.update_title()
         self.refresh_instrument_mode_ui_state()
@@ -621,7 +650,10 @@ class SimUiWindow(QtWidgets.QMainWindow):
         config.is_coating  = self.isCoatingCombo.currentData()
 
     def get_current_role(self):
-        return 'cal' if self.instModeCombo.currentIndex() == 0 else 'telescope'
+        if self.is_cal_selected():
+            return self.get_cal_source()
+        else:
+            return 'telescope'
 
     def any_lamp_is_on(self):
         role = self.get_current_role()
@@ -827,7 +859,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         config.cal_select      = self.is_cal_selected()
         config.cal_source      = self.get_cal_source()
-        
+
         config.is_coating      = self.isCoatingCombo.currentData()
         config.is_aperture     = self.isApertureDiamSpin.value() * 1e-3
         config.is_radius       = self.isRadiusSpin.value() * 1e-3

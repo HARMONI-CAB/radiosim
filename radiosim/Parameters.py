@@ -365,7 +365,7 @@ class Parameters():
     def get_part_names(self):
         return list(self.parts.keys())
 
-    def load_lamp(self, name, path = None, rating = None, desc = None, response = None, role = "cal", psd = False, SI = False):
+    def load_lamp(self, name, path = None, rating = None, desc = None, response = None, role = "HARMONI", psd = False, SI = False):
         spectclass = InterpolatedPowerSpectrum if psd else InterpolatedSpectrum 
         if path is not None:
             full_path = self.resolve_data_file(path)
@@ -380,7 +380,7 @@ class Parameters():
             spectrum.set_role(role)
         self.lamps[name] = (spectrum, desc)
 
-    def add_line_lamp(self, name, F, desc = None, T = 1000, rating = None, frel_c = 0, role = "cal"):
+    def add_line_lamp(self, name, F, desc = None, T = 1000, rating = None, frel_c = 0, role = "HARMONI"):
         spectrum = LineSpectrum(F, T, frel_c)
 
         if rating is not None:
@@ -391,7 +391,7 @@ class Parameters():
         
         return spectrum
 
-    def load_black_body_lamp(self, name, T, rating = None, desc = None, role = "cal"):
+    def load_black_body_lamp(self, name, T, rating = None, desc = None, role = "HARMONI"):
         spectrum = BlackBodySpectrum(T)
 
         if rating is not None:

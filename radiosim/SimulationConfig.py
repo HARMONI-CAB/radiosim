@@ -221,6 +221,12 @@ class SimulationConfig(SerializableConfig):
     def set_temp_config(self, name, temp):
         self.temps[name] = temp
     
+    def role(self):
+        if self.cal_select:
+            return self.cal_source
+        else:
+            return 'telescope'
+        
     def save(self):
         self.save_param("cal_select")
         self.save_param("cal_source")

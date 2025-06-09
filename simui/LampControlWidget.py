@@ -46,7 +46,7 @@ class LampControlWidget(QtWidgets.QWidget):
 
         self.params   = params
         self.spectrum = lampParams[0]
-        self.calmode  = self.spectrum.test_role('cal')
+        self.calmode  = self.spectrum.test_role('HARMONI')
         self.lampGroupBox.setTitle(name)
         self.powerAdjustable = self.spectrum.is_adjustable()
         self.isPowerSource = issubclass(type(self.spectrum), PowerSpectrum)
