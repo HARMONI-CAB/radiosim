@@ -174,7 +174,7 @@ class Parameters():
         self.transmission_types = {}
         self.spect_types = {
             'is_in'        : ('IS light input', self.is_input_types),
-            'is_out'       : ('Input spectra (IS or telescope)', self.is_spect_types),
+            'is_out'       : ('Focal plane illumination', self.is_spect_types),
             'detector'     : ('Detector', self.ccd_spect_types),
             'transmission' : ('Total transmission spectrum', self.transmission_types),
         }
@@ -365,18 +365,17 @@ class Parameters():
     def get_part_names(self):
         return list(self.parts.keys())
 
-    def load_lamp(self, name, path = None, rating = None, desc = None, response = None, role = "HARMONI", psd = False, SI = False):
-        spectclass = InterpolatedPowerSpectrum if psd else InterpolatedSpectrum 
+    def load_lamp(self, name, path = None, rating = None, desc = None, response = None, role = "HARMONI", spect_class = InterpolatedSpectrum, SI = False):
         if path is not None:
             full_path = self.resolve_data_file(path)
-            spectrum = spectclass(full_path, SI = SI)
+            spectrum = spect_class(full_path, SI = SI)
         else:
-            spectrum = spectclass(response = response, SI = SI)
+            spectrum = spect_class(response = response, SI = SI)
 
         if rating is not None:
             spectrum.set_nominal_power_rating(rating)
         
-        if not psd:
+        if spect_class is not InterpolatedPowerSpectrum:
             spectrum.set_role(role)
         self.lamps[name] = (spectrum, desc)
 
@@ -624,9 +623,9 @@ class Parameters():
         return response
 
     def add_arc_lamps(self):
-        self.load_lamp('Argon arc lamp', path = 'ar-psd.csv', psd = True)
-        self.load_lamp('Argon arc lamp (fiber output)', path = 'ar-psd-atfiber.csv', psd = True)
-        self.load_lamp('Neon arc lamp',  path = 'ne-psd.csv', psd = True)
+        self.load_lamp('Argon arc lamp', path = 'ar-psd.csv', spect_class = InterpolatedPowerSpectrum)
+        self.load_lamp('Argon arc lamp (fiber output)', path = 'ar-psd-atfiber.csv', spect_class = InterpolatedPowerSpectrum)
+        self.load_lamp('Neon arc lamp',  path = 'ne-psd.csv', spect_class = InterpolatedPowerSpectrum)
 
     def load_defaults(self):
         # Load coatings
@@ -641,14 +640,14 @@ class Parameters():
             'PSD-HES-100W.csv',
             100,
             'HES-100W @ 3000K with 2" FWs + holder',
-            psd = True)
+            spect_class = InterpolatedPowerSpectrum)
         
         self.load_lamp(
             'HES50W',
             'PSD-HES-50W.csv',
             50,
             'HES-50W @ 3000K with 2" FWs + holder',
-            psd = True)
+            spect_class = InterpolatedPowerSpectrum)
         
         self.load_black_body_lamp('Black body', 3422, rating = 100)
         self.add_arc_lamps()

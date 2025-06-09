@@ -268,7 +268,7 @@ class SimUI(QObject):
         
         return coating
 
-    def make_cal_mode_spectrum(self):
+    def make_harmoni_mode_spectrum(self):
         #
         # The generation of a CAL mode spectrum works assuming that there is
         # certain unstructured power input that is transformed into a Lambertian
@@ -316,12 +316,54 @@ class SimUI(QObject):
                     fiber_spectrum.push_filter(response)
                     fiber_spectrum.set_multiplicity(config.fiber_length)
                     sphere.push_spectrum(fiber_spectrum)
+                
 
 
         spectrum = radiosim.AttenuatedSpectrum(sphere)
         spectrum.set_fnum(self.get_cal_fnum())
         return spectrum
 
+    def make_micado_mode_spectrum(self):
+        #
+        # MICADO mode spectra are descriptions of the FCU radiance. We can
+        # construct them pretty much like a sky spectrum, but simpler
+        #
+
+        fcu = radiosim.OverlappedSpectrum()
+
+        # Spectrum coming from all lamps
+        self.lamp_text = ''
+        for lamp in self.config.lamps.keys():
+            config = self.config.lamps[lamp]
+            if config.is_on:
+                lamp_spectrum = self.params.get_lamp(lamp)
+
+                if lamp_spectrum.test_role('MICADO'):
+                    if len(self.lamp_text) > 0:
+                        self.lamp_text += ' + '
+                    self.lamp_text += lamp
+                    
+                    if issubclass(type(lamp_spectrum), radiosim.PowerSpectrum):
+                        raise RuntimeError("Power spectrums are not allowed as FCU sources")
+                    
+                    fcu.push_spectrum(lamp_spectrum)
+
+        # We are going to rely on the cal mode f/# to convert FCU radiances into
+        # pixel irradiances
+
+        spectrum = radiosim.AttenuatedSpectrum(fcu)
+        spectrum.set_fnum(self.get_cal_fnum())
+
+        return spectrum
+
+    def make_cal_mode_spectrum(self):
+        if self.config.cal_source == 'HARMONI':
+            return self.make_harmoni_mode_spectrum()
+        elif self.config.cal_source == 'MICADO':
+            return self.make_micado_mode_spectrum()
+        else:
+            raise Exception(fr'Instrument is in an unknown cal source state ({self.config.cal_source})')
+        
     def make_obs_mode_spectrum(self):
         #
         # The generation of an observation mode spectrum assumes that there is

@@ -147,6 +147,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.action_Save_as.triggered.connect(self.on_save_as)
         self.action_Quit.triggered.connect(self.on_quit)
         self.action_LoadCube.triggered.connect(self.on_load_cube)
+        self.action_loadFCURadiance.triggered.connect(self.on_load_fcu)
         self.actionExport_data.triggered.connect(self.on_export_data)
         self.cubeChooserDialog.accepted.connect(self.on_cube_accepted)
 
@@ -404,8 +405,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
         if type is None:
             self.spectYAxisCombo.setEnabled(False)
             return
-        elif type == 'is_in' and not self.is_cal_selected():
-            self.spectYAxisCombo.setEnabled(False)
+        elif type == 'is_in':
+            enabled = self.is_cal_selected() and self.get_cal_source() == 'HARMONI'
+            self.spectYAxisCombo.setEnabled(enabled)
             return
 
         spectrums = self.params.get_spectrums_for_type(type)
@@ -450,7 +452,6 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         harmoniMode = self.calSourceCombo.currentIndex() == 0
 
-        self.fNSpin.setEnabled(harmoniMode)
         self.isRadiusSpin.setEnabled(harmoniMode)
         self.isApertureDiamSpin.setEnabled(harmoniMode)
         self.isCoatingCombo.setEnabled(harmoniMode)
@@ -1046,7 +1047,27 @@ class SimUiWindow(QtWidgets.QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, 'Cannot load config file', 'Failed to load config file: ' + str(e) + fr'<p /><pre>{traceback.format_exc()}</pre>')
             return False
-            
+
+    def do_load_fcu(self):
+        name, filter = QFileDialog.getOpenFileName(
+            self,
+            'Load FCU spectrum',
+            filter = 'FCU Radiance spectrum (*.csv);;All files (*)')
+        
+        if len(name) == 0:
+            return False
+
+        try:
+            self.params.load_lamp(
+                name = os.path.basename(name),
+                path = name,
+                desc = os.path.basename(name),
+                role = 'MICADO')
+            self.refresh_lamps()
+        except Exception as e:
+            QMessageBox.critical(self, 'Cannot load radiance curve', 'Failed to load radiance spectrum data: ' + str(e) + fr'<p /><pre>{traceback.format_exc()}</pre>')
+            return False
+
     def closeEvent(self, event):
         # do stuff
         if self.about_to_close():
@@ -1066,6 +1087,9 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
         self.do_open()
 
+    def on_load_fcu(self):
+        self.do_load_fcu()
+    
     def on_open_stage_dialog(self):
         self.do_configure_stages()
 

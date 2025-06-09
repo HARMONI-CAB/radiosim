@@ -185,6 +185,21 @@
       </widget>
       <widget class="QWidget" name="page_11">
        <layout class="QGridLayout" name="gridLayout_24">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="0" column="0">
          <widget class="QScrollArea" name="scrollArea_4">
           <property name="frameShape">
@@ -204,13 +219,16 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>270</width>
-             <height>397</height>
+             <width>288</width>
+             <height>415</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="fcuLayout">
             <property name="spacing">
              <number>3</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
             </property>
             <property name="topMargin">
              <number>0</number>
@@ -2079,6 +2097,7 @@ font-weight: bold;</string>
       <string>Import...</string>
      </property>
      <addaction name="action_LoadCube"/>
+     <addaction name="action_loadFCURadiance"/>
     </widget>
     <addaction name="action_Open"/>
     <addaction name="action_Save"/>
@@ -2142,6 +2161,11 @@ font-weight: bold;</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="action_loadFCURadiance">
+   <property name="text">
+    <string>FCU radiance map...</string>
    </property>
   </action>
  </widget>
