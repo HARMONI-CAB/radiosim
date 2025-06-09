@@ -191,7 +191,7 @@ font-weight: bold;</string>
     <item row="0" column="2" rowspan="6">
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -318,16 +318,7 @@ font-weight: bold;</string>
                    <property name="spacing">
                     <number>3</number>
                    </property>
-                   <item row="3" column="1">
-                    <widget class="QComboBox" name="isCoatingCombo">
-                     <item>
-                      <property name="text">
-                       <string>Fully reflective</string>
-                      </property>
-                     </item>
-                    </widget>
-                   </item>
-                   <item row="2" column="0">
+                   <item row="2" column="2">
                     <widget class="QLabel" name="label_15">
                      <property name="text">
                       <string>IS aperture</string>
@@ -337,40 +328,7 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="5" column="1">
-                    <spacer name="verticalSpacer_2">
-                     <property name="orientation">
-                      <enum>Qt::Vertical</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>20</width>
-                       <height>1</height>
-                      </size>
-                     </property>
-                    </spacer>
-                   </item>
-                   <item row="1" column="0">
-                    <widget class="QLabel" name="label_14">
-                     <property name="text">
-                      <string>IS radius</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="3" column="0">
-                    <widget class="QLabel" name="label_10">
-                     <property name="text">
-                      <string>IS coating</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="1">
+                   <item row="2" column="1">
                     <widget class="QDoubleSpinBox" name="isRadiusSpin">
                      <property name="alignment">
                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -389,7 +347,75 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="2" column="1">
+                   <item row="2" column="0">
+                    <widget class="QLabel" name="label_14">
+                     <property name="text">
+                      <string>IS radius</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_39">
+                     <property name="text">
+                      <string>Light source</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="label_8">
+                     <property name="text">
+                      <string>Offner f#</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="4" column="1">
+                    <widget class="QComboBox" name="isCoatingCombo">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <item>
+                      <property name="text">
+                       <string>Fully reflective</string>
+                      </property>
+                     </item>
+                    </widget>
+                   </item>
+                   <item row="4" column="0">
+                    <widget class="QLabel" name="label_10">
+                     <property name="text">
+                      <string>IS coating</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="6" column="1">
+                    <spacer name="verticalSpacer_2">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>1</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item row="2" column="3">
                     <widget class="QDoubleSpinBox" name="isApertureDiamSpin">
                      <property name="alignment">
                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -411,7 +437,7 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="0" column="1">
+                   <item row="1" column="1" colspan="3">
                     <widget class="QDoubleSpinBox" name="fNSpin">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -430,17 +456,21 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="label_8">
-                     <property name="text">
-                      <string>Offner f#</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
+                   <item row="0" column="1" colspan="3">
+                    <widget class="QComboBox" name="calSourceCombo">
+                     <item>
+                      <property name="text">
+                       <string>Classical HARMONI's CM</string>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>MICADO Sources</string>
+                      </property>
+                     </item>
                     </widget>
                    </item>
-                   <item row="4" column="0">
+                   <item row="4" column="2">
                     <widget class="QLabel" name="label_16">
                      <property name="text">
                       <string>Custom equalizer</string>
@@ -450,8 +480,15 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="4" column="1">
-                    <widget class="QComboBox" name="customEqCombo"/>
+                   <item row="4" column="3">
+                    <widget class="QComboBox" name="customEqCombo">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                    </widget>
                    </item>
                   </layout>
                  </widget>
@@ -478,6 +515,94 @@ font-weight: bold;</string>
                    <property name="spacing">
                     <number>3</number>
                    </property>
+                   <item row="4" column="0">
+                    <widget class="QLabel" name="label_34">
+                     <property name="text">
+                      <string>Efficiency</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_20">
+                     <property name="text">
+                      <string>Moon</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QSpinBox" name="moonSlider">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                     <property name="suffix">
+                      <string> %</string>
+                     </property>
+                     <property name="maximum">
+                      <number>100</number>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="3">
+                    <widget class="QDoubleSpinBox" name="zenithSpin">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                     <property name="suffix">
+                      <string> º</string>
+                     </property>
+                     <property name="maximum">
+                      <double>80.000000000000000</double>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="2">
+                    <widget class="QLabel" name="label_28">
+                     <property name="text">
+                      <string>Zenith distance</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="2">
+                    <widget class="QLabel" name="label_33">
+                     <property name="text">
+                      <string>Aperture diameter</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QLabel" name="label_32">
+                     <property name="text">
+                      <string>Focal length</string>
+                     </property>
+                     <property name="alignment">
+                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     </property>
+                    </widget>
+                   </item>
                    <item row="1" column="1">
                     <widget class="QDoubleSpinBox" name="focalLengthSpin">
                      <property name="sizePolicy">
@@ -503,8 +628,8 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="0" column="1">
-                    <widget class="QSpinBox" name="moonSlider">
+                   <item row="4" column="1">
+                    <widget class="QDoubleSpinBox" name="efficiencySpin">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                        <horstretch>0</horstretch>
@@ -517,22 +642,28 @@ font-weight: bold;</string>
                      <property name="suffix">
                       <string> %</string>
                      </property>
+                     <property name="decimals">
+                      <number>0</number>
+                     </property>
                      <property name="maximum">
-                      <number>100</number>
+                      <double>100.000000000000000</double>
                      </property>
                     </widget>
                    </item>
-                   <item row="5" column="2">
-                    <widget class="QLabel" name="label_29">
-                     <property name="text">
-                      <string>Airmass:</string>
+                   <item row="6" column="1">
+                    <spacer name="verticalSpacer">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
                      </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>1</height>
+                      </size>
                      </property>
-                    </widget>
+                    </spacer>
                    </item>
-                   <item row="2" column="1">
+                   <item row="1" column="3">
                     <widget class="QDoubleSpinBox" name="apertureSpin">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -557,69 +688,33 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="2" column="0">
-                    <widget class="QLabel" name="label_33">
+                   <item row="0" column="4">
+                    <widget class="QLabel" name="label_29">
                      <property name="text">
-                      <string>Aperture diameter</string>
+                      <string>Airmass:</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                      </property>
                     </widget>
                    </item>
-                   <item row="1" column="0">
-                    <widget class="QLabel" name="label_32">
-                     <property name="text">
-                      <string>Focal length</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="4" column="1">
-                    <widget class="QDoubleSpinBox" name="efficiencySpin">
+                   <item row="0" column="5">
+                    <widget class="QLabel" name="airmassLabel">
                      <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                        <horstretch>0</horstretch>
                        <verstretch>0</verstretch>
                       </sizepolicy>
                      </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                     <property name="suffix">
-                      <string> %</string>
-                     </property>
-                     <property name="decimals">
-                      <number>0</number>
-                     </property>
-                     <property name="maximum">
-                      <double>100.000000000000000</double>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="4" column="0">
-                    <widget class="QLabel" name="label_34">
                      <property name="text">
-                      <string>Efficiency</string>
+                      <string>1</string>
                      </property>
                      <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                      </property>
                     </widget>
                    </item>
-                   <item row="5" column="0">
-                    <widget class="QLabel" name="label_28">
-                     <property name="text">
-                      <string>Zenith distance</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="3" column="0">
+                   <item row="4" column="2">
                     <widget class="QLabel" name="label_36">
                      <property name="text">
                       <string>Collecting area</string>
@@ -629,17 +724,7 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="label_20">
-                     <property name="text">
-                      <string>Moon</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="3" column="1">
+                   <item row="4" column="3">
                     <widget class="QDoubleSpinBox" name="collectingAreaSpin">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -670,42 +755,7 @@ font-weight: bold;</string>
                      </property>
                     </widget>
                    </item>
-                   <item row="5" column="3">
-                    <widget class="QLabel" name="airmassLabel">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="text">
-                      <string>1</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="5" column="1">
-                    <widget class="QDoubleSpinBox" name="zenithSpin">
-                     <property name="sizePolicy">
-                      <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                       <horstretch>0</horstretch>
-                       <verstretch>0</verstretch>
-                      </sizepolicy>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                     </property>
-                     <property name="suffix">
-                      <string> º</string>
-                     </property>
-                     <property name="maximum">
-                      <double>80.000000000000000</double>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="3" column="2" colspan="2">
+                   <item row="4" column="4">
                     <widget class="QLabel" name="maxCollAreaLabel">
                      <property name="sizePolicy">
                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -723,19 +773,6 @@ font-weight: bold;</string>
                       <string>≤ 8888.88 m²</string>
                      </property>
                     </widget>
-                   </item>
-                   <item row="6" column="1">
-                    <spacer name="verticalSpacer">
-                     <property name="orientation">
-                      <enum>Qt::Vertical</enum>
-                     </property>
-                     <property name="sizeHint" stdset="0">
-                      <size>
-                       <width>20</width>
-                       <height>1</height>
-                      </size>
-                     </property>
-                    </spacer>
                    </item>
                   </layout>
                  </widget>

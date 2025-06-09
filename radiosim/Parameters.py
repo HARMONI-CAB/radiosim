@@ -554,6 +554,7 @@ class Parameters():
         ao      = config['ao']
         cal     = config['cal']
         airmass = config['airmass']
+        harMode = config['cal_source'] == 'HARMONI'
 
         fD_tel  = config['fD_tel'] if 'fD_tel' in config else None
         fD_cal  = config['fD_cal'] if 'fD_cal' in config else None
@@ -572,12 +573,13 @@ class Parameters():
     
         if cal:
             # Push equalizer
-            if config['custom_eq'] is not None:
-                name = config['custom_eq']
-                response.push_back(self.get_custom_eq(name), fD_cal)
-            else:
-                response.push_back(gr_obj[1], fD_cal)
-            response.push_back(self.get_part("Offner"), fD_cal)
+            if harMode:
+                if config['custom_eq'] is not None:
+                    name = config['custom_eq']
+                    response.push_back(self.get_custom_eq(name), fD_cal)
+                else:
+                    response.push_back(gr_obj[1], fD_cal)
+                response.push_back(self.get_part("Offner"), fD_cal)
         else:
             # Push telescope
             self.sky.set_airmass(airmass)

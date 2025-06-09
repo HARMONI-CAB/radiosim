@@ -183,6 +183,7 @@ class SimulationConfig(SerializableConfig):
         self.telescope       = TelescopeConfig()
         self.detector        = DetectorConfig()
         self.cal_select      = True
+        self.cal_source      = "MICADO"
         self.is_radius       = 1e-1
         self.is_aperture     = .5e-1
         self.is_coating      = 'SPECTRALON'
@@ -222,6 +223,7 @@ class SimulationConfig(SerializableConfig):
     
     def save(self):
         self.save_param("cal_select")
+        self.save_param("cal_source")
         self.save_param("lambda_sampling")
         
         self.save_param("is_coating")

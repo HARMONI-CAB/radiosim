@@ -185,8 +185,12 @@ class SimUI(QObject):
         color     = coating._text
 
         if self.config.cal_select:
-            html   = f'Integrating Sphere\n{coating._name}'
-            graph += f'input [shape=circle, fillcolor="white:{fillcolor}", fontcolor="{color}", gradientangle=0, style=radial, label = "{html}"];\n'
+            if self.config.cal_source == "MICADO":
+                html   = f'FCU'
+                graph += f'input [shape=box3d, fillcolor="white:{fillcolor}", height=1, width=1, fontcolor="{color}", gradientangle=0, style=radial, label = "{html}"];\n'
+            else:
+                html   = f'Integrating Sphere\n{coating._name}'
+                graph += f'input [shape=circle, fillcolor="white:{fillcolor}", fontcolor="{color}", gradientangle=0, style=radial, label = "{html}"];\n'
         else:
             html   = f'<b>ELT</b><br />{self.config.telescope.focal_length} / {self.config.telescope.aperture}'
             graph += f'input [shape=cylinder, fillcolor="white", rotate=90, height=2, width=2, label = <{html}>];\n'
@@ -228,22 +232,24 @@ class SimUI(QObject):
         resp_config = {}
         airmass = 1.1
 
-        if self.config.cal_select:
+        if not self.config.cal_select:
             angle   = self.config.telescope.zenith_distance
             toRad   = angle / 180. * np.pi
             airmass = 1. / np.cos(toRad)
         
-        resp_config['grating']   = self.config.grating
-        resp_config['ao']        = self.config.aomode
-        resp_config['cal']       = self.config.cal_select
-        resp_config['airmass']   = airmass
-        resp_config['custom_eq'] = self.config.custom_eq
+        resp_config['grating']    = self.config.grating
+        resp_config['ao']         = self.config.aomode
+        resp_config['cal']        = self.config.cal_select
+        resp_config['cal_source'] = self.config.cal_source
+        resp_config['source']     = self.config.cal_source
+        resp_config['airmass']    = airmass
+        resp_config['custom_eq']  = self.config.custom_eq
         # Incrementing the scale means that the same pixel covers more sky.
         # This reduces the effective focal length in the involved parts.
-        resp_config['fD_tel']    = self.get_sky_fnum()
-        resp_config['fD_cal']    = HARMONI_INST_FNUM
-        resp_config['fD_ins']    = HARMONI_INST_FNUM
-        resp_config['fD_fix']    = HARMONI_INST_FNUM
+        resp_config['fD_tel']     = self.get_sky_fnum()
+        resp_config['fD_cal']     = HARMONI_INST_FNUM
+        resp_config['fD_ins']     = HARMONI_INST_FNUM
+        resp_config['fD_fix']     = HARMONI_INST_FNUM
 
         response = self.params.make_response(resp_config)
         if self.config.bypass_stage is not None:

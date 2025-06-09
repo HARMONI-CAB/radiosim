@@ -112,6 +112,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
         self.overrideLabelCheck.toggled.connect(self.on_state_widget_changed)
         
         self.instModeCombo.activated.connect(self.on_inst_mode_widget_changed)
+        self.calSourceCombo.activated.connect(self.on_inst_mode_widget_changed)
         self.focalLengthSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.efficiencySpin.valueChanged.connect(self.on_inst_mode_widget_changed)
         self.apertureSpin.valueChanged.connect(self.on_inst_mode_widget_changed)
@@ -425,6 +426,14 @@ class SimUiWindow(QtWidgets.QMainWindow):
         
         self.isApertureDiamSpin.setMaximum(1e3 * self.isRadiusSpin.value())
 
+        harmoniMode = self.calSourceCombo.currentIndex() == 0
+
+        self.fNSpin.setEnabled(harmoniMode)
+        self.isRadiusSpin.setEnabled(harmoniMode)
+        self.isApertureDiamSpin.setEnabled(harmoniMode)
+        self.isCoatingCombo.setEnabled(harmoniMode)
+        self.customEqCombo.setEnabled(harmoniMode)
+
     def refresh_max_area(self):
             maxArea = np.pi * .25 * self.apertureSpin.value() ** 2
             self.collectingAreaSpin.setMaximum(maxArea)
@@ -677,12 +686,19 @@ class SimUiWindow(QtWidgets.QMainWindow):
         else:
             self.isCoatingCombo.setCurrentIndex(index)
 
-    def set_cal_mode(self, enabled):
+    def set_cal_mode(self, enabled, source):
         ndx = 0 if enabled else 1
         self.calModeStack.setCurrentIndex(ndx)
         self.instModeCombo.setCurrentIndex(ndx)
         self.sourceStack.setCurrentIndex(ndx)
 
+        if source == "HARMONI":
+            self.calSourceCombo.setCurrentIndex(0)
+        elif source == "MICADO":
+            self.calSourceCombo.setCurrentIndex(1)
+        else:
+            self.calSourceCombo.setCurrentIndex(0)
+        
     def refresh_airmass(self):
         angle = self.zenithSpin.value()
         toRad = angle / 180. * np.pi
@@ -701,11 +717,12 @@ class SimUiWindow(QtWidgets.QMainWindow):
         cal     = self.instModeCombo.currentIndex() == 0
         airmass = 1.1
 
-        resp_config['grating']   = grating
-        resp_config['ao']        = aomode
-        resp_config['cal']       = cal
-        resp_config['airmass']   = airmass
-        resp_config['custom_eq'] = self.customEqCombo.currentData()
+        resp_config['grating']    = grating
+        resp_config['ao']         = aomode
+        resp_config['cal']        = cal
+        resp_config['cal_source'] = self.get_cal_source()
+        resp_config['airmass']    = airmass
+        resp_config['custom_eq']  = self.customEqCombo.currentData()
 
         response = self.params.make_response(resp_config)
 
@@ -732,7 +749,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
             self.set_cm_config(config)
             self.set_telescope_config(config.telescope)
-            self.set_cal_mode(config.cal_select)
+            self.set_cal_mode(config.cal_select, config.cal_source)
 
             self.set_grating(config.grating)
             self.set_ao_mode(config.aomode)
@@ -764,6 +781,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
             self.bypass_stage = config.bypass_stage
 
+            self.refresh_instrument_mode_ui_state()
+
             self.changes = False
             self.update_title()
             self.changed.emit()
@@ -786,6 +805,15 @@ class SimUiWindow(QtWidgets.QMainWindow):
     def is_cal_selected(self):
         return self.instModeCombo.currentIndex() == 0
     
+    def get_cal_source(self):
+        sources = ["HARMONI", "MICADO"]
+
+        index = self.calSourceCombo.currentIndex()
+        if index < 0:
+            index = 0
+        
+        return sources[index]
+    
     def get_config(self):
         config = SimulationConfig()
         
@@ -798,7 +826,8 @@ class SimUiWindow(QtWidgets.QMainWindow):
             config.set_temp_config(temp, self.temp_widgets[temp].get_config())
         
         config.cal_select      = self.is_cal_selected()
-
+        config.cal_source      = self.get_cal_source()
+        
         config.is_coating      = self.isCoatingCombo.currentData()
         config.is_aperture     = self.isApertureDiamSpin.value() * 1e-3
         config.is_radius       = self.isRadiusSpin.value() * 1e-3
