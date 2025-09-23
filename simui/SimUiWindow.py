@@ -493,7 +493,7 @@ class SimUiWindow(QtWidgets.QMainWindow):
 
     def set_grating(self, grating_name):
         if grating_name is None:
-            grating_name = "VIS"
+            grating_name = "LR1"
 
         obj = self.params.get_grating(grating_name)
         if obj is None:

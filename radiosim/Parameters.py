@@ -683,17 +683,17 @@ class Parameters():
             self.load_filter("Z",         "t-z.csv")
 
         # Load equalizers
-        self.load_equalizer("VIS",    "f-vis.csv")
+        #self.load_equalizer("VIS",    "f-vis.csv")
         self.load_equalizer("LR1",    "f-lr1.csv")
         self.load_equalizer("LR2",    "f-lr2.csv")
         self.load_equalizer("MR1",    "f-mr1.csv")
         self.load_equalizer("MR2",    "f-mr2.csv")
         self.load_equalizer("MR3",    "f-mr3.csv")
         self.load_equalizer("MR4",    "f-mr4.csv")
-        self.load_equalizer("HR1",    "f-hr1.csv")
-        self.load_equalizer("HR2",    "f-hr2.csv")
-        self.load_equalizer("HR3",    "f-hr3.csv")
-        self.load_equalizer("HR4",    "f-hr4.csv")
+        #self.load_equalizer("HR1",    "f-hr1.csv")
+        #self.load_equalizer("HR2",    "f-hr2.csv")
+        #self.load_equalizer("HR3",    "f-hr3.csv")
+        #self.load_equalizer("HR4",    "f-hr4.csv")
         
         # Load custom (COTS) equalizer
         self.load_custom_eq("LB120", "LB120.csv")
@@ -704,7 +704,7 @@ class Parameters():
         self.load_custom_eq("C5000", "C5000.csv")
 
         # Register available gratings
-        self.register_grating("VIS", "VIS", "VIS", 3100, 0.462e-6, 0.812e-6)
+        #self.register_grating("VIS", "VIS", "VIS", 3100, 0.462e-6, 0.812e-6)
         
         self.register_grating("LR1", "IZJ", "LR1", 3355, 0.811e-6, 1.369e-6)
         self.register_grating("LR2", "HK",  "LR2", 3355, 1.450e-6, 2.450e-6)
@@ -714,15 +714,17 @@ class Parameters():
         self.register_grating("MR3", "H" ,  "MR3", 7104, 1.435e-6, 1.815e-6)
         self.register_grating("MR4", "K" ,  "MR4", 7104, 1.951e-6, 2.469e-6)
         
-        self.register_grating("HR1", "Z",         "HR1", 17385, 0.827e-6, 0.903e-6)
-        self.register_grating("HR2", "H (high)",  "HR2", 17385, 1.538e-6, 1.678e-6)
-        self.register_grating("HR3", "K (short)", "HR3", 17385, 2.017e-6, 2.201e-6)
-        self.register_grating("HR4", "K (long)",  "HR4", 17385, 2.199e-6, 2.399e-6)
+        #self.register_grating("HR1", "Z",         "HR1", 17385, 0.827e-6, 0.903e-6)
+        #self.register_grating("HR2", "H (high)",  "HR2", 17385, 1.538e-6, 1.678e-6)
+        #self.register_grating("HR3", "K (short)", "HR3", 17385, 2.017e-6, 2.201e-6)
+        #self.register_grating("HR4", "K (long)",  "HR4", 17385, 2.199e-6, 2.399e-6)
 
         # Register scales
         self.register_scale((4, 4), HARMONI_FINEST_SPAXEL_SIZE, HARMONI_FINEST_SPAXEL_SIZE)
+        self.register_scale((6, 6),    6,  6)
         self.register_scale((10, 10), 10, 10)
         self.register_scale((20, 20), 20, 20)
+        self.register_scale((25, 25), 25, 25)
         self.register_scale((60, 30), 60, 30)
 
         self.register_transmissions()

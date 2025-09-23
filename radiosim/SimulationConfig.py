@@ -192,7 +192,7 @@ class SimulationConfig(SerializableConfig):
         self.bypass_stage    = []
         self.binning         = 1
         self.lambda_sampling = 2.2
-        self.grating         = 'VIS'
+        self.grating         = 'LR1'
         self.aomode          = 'NOAO'
         self.scale           = (4, 4)
         self.t_exp           = 10
