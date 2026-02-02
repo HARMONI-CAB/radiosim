@@ -1722,7 +1722,7 @@ font-weight: bold;</string>
       </widget>
       <widget class="QWidget" name="outPage">
        <attribute name="title">
-        <string>Exposition time</string>
+        <string>Exposure time</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_11">
         <item row="0" column="1">
